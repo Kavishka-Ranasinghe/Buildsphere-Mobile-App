@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'sign_up.dart'; // Import SignUpPage for navigation
-import 'main.dart'; // Import HomePage for navigation
+import 'room_section.dart'; // Import HomePage for navigation
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -36,7 +36,7 @@ class LoginPage extends StatelessWidget {
                 // Navigate to HomePage on successful login
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyApp()),
+                  MaterialPageRoute(builder: (context) => const room_section()),
                 );
               },
               child: const Text('Login'),

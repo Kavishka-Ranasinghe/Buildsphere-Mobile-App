@@ -33,7 +33,7 @@ dependencies:
   flutter_native_splash: ^2.0.5  # Version may vary
   shared_preferences: ^2.0.9  # Check for the latest version
   image_picker: ^0.8.7+3
-  url_launcher: ^6.0.20
+  url_launcher: ^6.1.9  # Version as of now; check for latest version
 flutter_native_splash:
   color: "#42a5f5" # Background color for the splash screen
   image: assets/images/splash01.png  # Path to your splash image
@@ -69,6 +69,8 @@ flutter:
   assets:
       - assets/images/splash01.png
       - assets/images/sign-up.jpeg
+      - assets/images/profile.gif
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

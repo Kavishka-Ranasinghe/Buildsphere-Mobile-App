@@ -14,7 +14,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   String? _selectedRole;
-  final List<String> _roles = ['Client', 'Engineer', 'Planner', 'Hardware-Owner'];
+  final List<String> _roles = ['Client', 'Engineer', 'Planner', 'Hardware-Shop Owner'];
 
   void _showPasswordMismatchDialog() {
     showDialog(
