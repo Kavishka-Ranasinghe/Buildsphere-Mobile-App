@@ -8,7 +8,7 @@ class ItemShoppingScreen extends StatelessWidget {
 
   Future<void> _searchItem(String query) async {
     // Daraz search URL
-    final darazUrl = 'https://www.daraz.lk/catalog/?spm=a2a0e.tm80335410.search.d_go&q=$query';
+    final darazUrl = 'https://www.daraz.lk/catalog/?spm=a2a0e.tm80335410.search.d_go&q=$query.';
 
     // Check if the URL can be launched
     if (await canLaunchUrl(Uri.parse(darazUrl))) {

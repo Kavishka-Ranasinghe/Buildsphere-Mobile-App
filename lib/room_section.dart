@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'profile.dart';
 import 'app_drawer.dart';
 import 'dashboard_item.dart';
-
+import 'join_room.dart';
 
 class room_section extends StatelessWidget {
   const room_section({super.key});
@@ -21,7 +21,7 @@ class room_section extends StatelessWidget {
         ),
         backgroundColor: Colors.green,
       ),
-      drawer: const AppDrawer(), // Use the reusable AppDrawer
+      drawer: const AppDrawer(),
       body: Column(
         children: [
           Container(
@@ -65,16 +65,25 @@ class room_section extends StatelessWidget {
               crossAxisCount: 1,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              children: const [
+              children: [
                 DashboardItem(
                   icon: Icons.group_add,
                   label: 'Join Room',
                   color: Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const JoinRoom()),
+                    );
+                  },
                 ),
                 DashboardItem(
                   icon: Icons.add,
                   label: 'Create Room',
                   color: Colors.blue,
+                  onTap: () {
+                    // Define navigation to Create Room page here
+                  },
                 ),
               ],
             ),
