@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
- // Adjust the import based on your project structure
 import 'main.dart'; // Make sure this points to your main app entry
+import 'sign_up.dart'; // Make sure this points to your main app entry
 
 
 class SplashScreen extends StatefulWidget {
@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => loggedIn ? const MyHomePage(title: 'Flutter Demo Home Page') : const MyApp(),
+        builder: (context) => loggedIn ? const MyHomePage(title: 'Flutter Demo Home Page') : const SignUpPage(),
       ),
     );
   }
