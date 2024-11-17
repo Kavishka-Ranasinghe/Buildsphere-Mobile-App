@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'chat_room.dart';
 import 'room_section.dart';
 import 'c_item_shopping.dart'; // Import ItemShoppingScreen
+import 'c_raw_supply_shopping.dart'; // Import RawSupplyScreen
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -26,7 +27,10 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.home),
-            title: const Text('Room Section', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            title: const Text(
+              'Room Section',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -37,7 +41,10 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.chat),
-            title: const Text('Chat Rooms', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            title: const Text(
+              'Chat Rooms',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -48,27 +55,39 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.shopping_cart),
-            title: const Text('Buy Items', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            title: const Text(
+              'Buy Items',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ItemShoppingScreen()), // Navigate to ItemShoppingScreen
+                MaterialPageRoute(builder: (context) => const ItemShoppingScreen()),
               );
             },
           ),
           ListTile(
             leading: const Icon(Icons.construction),
-            title: const Text('Buy Raw Supplies', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+            title: const Text(
+              'Buy Raw Supplies',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
             onTap: () {
               Navigator.pop(context);
-              // Add navigation code for Buy Raw Supplies
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RawSupplyScreen()), // Navigate to RawSupplyScreen
+              );
             },
           ),
-          Divider(), // Optional divider to separate the Cancel button
+          const Divider(), // Optional divider to separate the Cancel button
           ListTile(
             leading: const Icon(Icons.cancel),
-            title: const Text('Close Menu', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+            title: const Text(
+              'Close Menu',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+            ),
             onTap: () {
               Navigator.pop(context); // Closes the drawer
             },

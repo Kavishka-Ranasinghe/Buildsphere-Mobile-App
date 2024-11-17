@@ -1,3 +1,5 @@
+//this page is for customer item shopping
+// when customer type in search bar or scan item it takes the word and redirect to daraz.lk with relevent search word.
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'profile.dart';
