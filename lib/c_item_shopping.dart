@@ -6,18 +6,19 @@ import 'app_drawer.dart';
 class ItemShoppingScreen extends StatelessWidget {
   const ItemShoppingScreen({super.key});
 
-  Future<void> _searchItem(String query) async {
-    // Daraz search URL
-    final darazUrl = 'https://www.daraz.lk/catalog/?spm=a2a0e.tm80335410.search.d_go&q=$query.';
-
-    // Check if the URL can be launched
-    if (await canLaunchUrl(Uri.parse(darazUrl))) {
+  // Function to search for an item
+  void _searchItem(String query, BuildContext context) async {
+    final url =
+        'https://www.daraz.lk/catalog/?spm=a2a0e.tm80335410.search.d_go&q=${Uri.encodeComponent(query)}';
+    if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(
-        Uri.parse(darazUrl),
-        mode: LaunchMode.externalApplication, // Tries to open in app if possible
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
       );
     } else {
-      throw 'Could not launch $darazUrl';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch $url')),
+      );
     }
   }
 
@@ -37,7 +38,7 @@ class ItemShoppingScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.green,
       ),
-      drawer: const AppDrawer(), // Add the AppDrawer here
+      drawer: const AppDrawer(),
       body: Column(
         children: [
           Container(
@@ -88,7 +89,7 @@ class ItemShoppingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                  onSubmitted: (query) => _searchItem(query), // Call _searchItem with query
+                  onSubmitted: (query) => _searchItem(query, context),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -101,7 +102,7 @@ class ItemShoppingScreen extends StatelessWidget {
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.yellowAccent,
                         ),
-                        onPressed: () => _searchItem(searchController.text), // Search button
+                        onPressed: () => _searchItem(searchController.text, context),
                       ),
                     ),
                     const SizedBox(width: 50),
