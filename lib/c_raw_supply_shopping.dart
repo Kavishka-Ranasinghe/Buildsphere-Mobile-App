@@ -14,6 +14,7 @@ class RawSupplyScreen extends StatefulWidget {
 class _RawSupplyScreenState extends State<RawSupplyScreen> {
   String? selectedDistrict;
   String? selectedCity;
+  String? selectedFilter;
 
   // Placeholder data
   final List<String> districts = ['Colombo', 'Kandy', 'Galle', 'Jaffna'];
@@ -23,6 +24,8 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
     'Galle': ['Hikkaduwa', 'Unawatuna', 'Weligama'],
     'Jaffna': ['Nallur', 'Vaddukoddai', 'Point Pedro'],
   };
+
+  final List<String> filters = ['Cement', 'Soil', 'Brick', 'Pebbles'];
 
   // Function to redirect to the phone app
   void _callNumber(String number) async {
@@ -127,13 +130,30 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                       });
                     },
                   ),
+                const SizedBox(height: 10),
+                DropdownButton<String>(
+                  value: selectedFilter,
+                  hint: const Text("Select Filter"),
+                  isExpanded: true,
+                  items: filters.map((filter) {
+                    return DropdownMenuItem(
+                      value: filter,
+                      child: Text(filter),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedFilter = value;
+                    });
+                  },
+                ),
               ],
             ),
           ),
-          if (selectedCity != null)
+          if (selectedCity != null && selectedFilter != null)
             Expanded(
               child: ListView.builder(
-                itemCount: 10, // Placeholder for posts
+                itemCount: 10, // Placeholder for filtered posts
                 itemBuilder: (context, index) {
                   return Card(
                     margin: const EdgeInsets.all(8.0),
@@ -146,9 +166,10 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Item Type: Cement Blocks'),
+                          Text('Item Type: $selectedFilter'),
                           const Text('Price: Rs. 100/block'),
-
+                          const Text('Shop: ABC Hardware'),
+                          const Text('Contact: 0771234567'),
                         ],
                       ),
                       isThreeLine: true,
@@ -158,7 +179,7 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                           MaterialPageRoute(
                             builder: (context) => RawItemDetailScreen(
                               itemName: 'Item $index',
-                              itemType: 'Cement Blocks',
+                              itemType: selectedFilter!,
                               price: 'Rs. 100/block',
                               shopName: 'ABC Hardware',
                               shopAddress: '123 Main Street, Colombo',
