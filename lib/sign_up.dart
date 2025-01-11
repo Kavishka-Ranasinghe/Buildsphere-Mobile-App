@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login.dart'; // Import the LoginPage
+import 'hardware_shop_owner_signup.dart'; // Import the HardwareShopOwnerSignUpPage
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -13,8 +14,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+
   String? _selectedRole;
-  final List<String> _roles = ['Client', 'Engineer', 'Planner', 'Hardware-Shop Owner'];
+  final List<String> _roles = ['Client', 'Engineer', 'Planner'];
 
   void _showPasswordMismatchDialog() {
     showDialog(
@@ -113,13 +115,25 @@ class _SignUpPageState extends State<SignUpPage> {
             ElevatedButton(
               onPressed: () {
                 if (_passwordController.text == _confirmPasswordController.text) {
-                  // Handle sign up logic here
+                  // Handle normal sign-up logic
                 } else {
-                  _showPasswordMismatchDialog(); // Show popup dialog if passwords don't match
+                  _showPasswordMismatchDialog();
                 }
               },
               child: const Text('Sign Up'),
             ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to hardware shop owner registration page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HardwareShopOwnerSignUpPage()),
+                );
+              },
+              child: const Text('Register as Hardware-Shop Owner'),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 // Navigate to LoginPage
