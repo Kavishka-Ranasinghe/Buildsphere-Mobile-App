@@ -50,7 +50,7 @@ class _SignUpPageState extends State<SignUpPage> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Container(
-              height: 200,
+              height: 100,
               decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('assets/images/sign-up.jpeg'),
