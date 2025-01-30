@@ -14,15 +14,19 @@ class ShopDetailScreen extends StatelessWidget {
     required this.contactNumber,
   });
 
-  // Function to launch a phone call
-  void _callNumber(String number) async {
-    final Uri phoneUri = Uri(scheme: 'tel', path: number);
+  // Function to launch the phone dialer
+  void _callNumber(BuildContext context, String number) async {
+    final Uri phoneUri = Uri.parse('tel:$number');
+
     if (await canLaunchUrl(phoneUri)) {
-      await launchUrl(phoneUri);
+      await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
     } else {
-      debugPrint('Could not launch $number');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open dialer for $number')),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -33,17 +37,17 @@ class ShopDetailScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context);  // This will take the user back to the previous page
+            Navigator.pop(context);  // Navigate back
           },
         ),
       ),
-      drawer: const AppDrawer(),  // Assuming you have an AppDrawer widget to provide the navigation menu
+      drawer: const AppDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header section without profile section
+            // Header section
             Container(
               color: Colors.green,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -64,18 +68,18 @@ class ShopDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Placeholder image for the shop (Shop board)
+            // Shop Image (Placeholder)
             Center(
               child: Image.network(
-                'https://via.placeholder.com/150',  // Placeholder image URL
-                height: 150, // Adjust the height as needed
-                width: 150,  // Adjust the width as needed
+                'https://via.placeholder.com/150',  // Placeholder image
+                height: 150,
+                width: 150,
                 fit: BoxFit.cover,
               ),
             ),
             const SizedBox(height: 20),
 
-            // Shop details content
+            // Shop details
             Text(
               'Shop Name: $shopName',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -83,15 +87,26 @@ class ShopDetailScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text('Address: $shopAddress', style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 10),
+
+            // Contact number section (Clickable icon + text)
             GestureDetector(
-              onTap: () => _callNumber(contactNumber),
-              child: Text(
-                'Contact: $contactNumber',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                ),
+              onTap: () => _callNumber(context, contactNumber), // Call function when tapped
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.phone, color: Colors.green, size: 30),
+                    onPressed: () => _callNumber(context, contactNumber),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Contact: $contactNumber',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

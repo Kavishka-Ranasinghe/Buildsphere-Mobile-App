@@ -33,7 +33,7 @@ dependencies:
   flutter_native_splash: ^2.0.5  # Version may vary
   shared_preferences: ^2.0.9  # Check for the latest version
   image_picker: ^0.8.7+3
-  url_launcher: ^6.1.9  # Version as of now; check for latest version
+  url_launcher: ^6.3.1  # Version as of now; check for latest version
 flutter_native_splash:
   color: "#42a5f5" # Background color for the splash screen
   image: assets/images/splash01.png  # Path to your splash image
