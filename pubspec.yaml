@@ -70,6 +70,7 @@ flutter:
       - assets/images/splash01.png
       - assets/images/sign-up.jpeg
       - assets/images/profile.gif
+      - assets/images/c.jpg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

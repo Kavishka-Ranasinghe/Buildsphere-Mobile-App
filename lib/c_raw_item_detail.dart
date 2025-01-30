@@ -20,13 +20,16 @@ class RawItemDetailScreen extends StatelessWidget {
     required this.contactNumber,
   });
 
-  // Function to launch a phone call
-  void _callNumber(String number) async {
-    final Uri phoneUri = Uri(scheme: 'tel', path: number);
+  // Function to launch the phone dialer
+  void _callNumber(BuildContext context, String number) async {
+    final Uri phoneUri = Uri.parse('tel:$number');
+
     if (await canLaunchUrl(phoneUri)) {
-      await launchUrl(phoneUri);
+      await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
     } else {
-      debugPrint('Could not launch $number');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open dialer for $number')),
+      );
     }
   }
 
@@ -44,13 +47,13 @@ class RawItemDetailScreen extends StatelessWidget {
           children: [
             Center(
               child: Image.asset(
-                'assets/images/item_placeholder.png', // Placeholder image
+                'assets/images/c.jpg', // Placeholder image
                 height: 200,
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'Item Name: $itemName',
+              'Item Name: Lanwa Cement',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text('Item Type: $itemType', style: const TextStyle(fontSize: 16)),
@@ -69,26 +72,41 @@ class RawItemDetailScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: Text(
-                'Shop: $shopName',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                ),
+              child: Row(
+                children: [
+                  const Icon(Icons.store, color: Colors.blue, size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Shop: $shopName',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),
             Text('Shop Address: $shopAddress', style: const TextStyle(fontSize: 16)),
             GestureDetector(
-              onTap: () => _callNumber(contactNumber),
-              child: Text(
-                'Contact: $contactNumber',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                ),
+              onTap: () => _callNumber(context, contactNumber), // Call function when tapped
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.phone, color: Colors.green, size: 30),
+                    onPressed: () => _callNumber(context, contactNumber),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Contact: $contactNumber',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
