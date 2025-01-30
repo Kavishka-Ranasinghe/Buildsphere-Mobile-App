@@ -10,16 +10,18 @@ class ItemShoppingScreen extends StatelessWidget {
 
   // Function to search for an item
   void _searchItem(String query, BuildContext context) async {
-    final url =
+    final darazAppUrl = 'daraz://search?q=${Uri.encodeComponent(query)}'; // Daraz app deep link
+    final darazWebUrl =
         'https://www.daraz.lk/catalog/?spm=a2a0e.tm80335410.search.d_go&q=${Uri.encodeComponent(query)}';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
+
+    if (await canLaunchUrl(Uri.parse(darazAppUrl))) {
+      // If the Daraz app is installed, open the app
+      await launchUrl(Uri.parse(darazAppUrl));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not launch $url')),
+      // If the Daraz app is not installed, open in a web browser (Chrome)
+      await launchUrl(
+        Uri.parse(darazWebUrl),
+        mode: LaunchMode.externalApplication, // Ensures opening in a web browser
       );
     }
   }
@@ -134,9 +136,9 @@ class ItemShoppingScreen extends StatelessWidget {
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.blue,
-                    child: Text(
+                    child: const Text(
                       'I',
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                   title: Text('Item $index'),
