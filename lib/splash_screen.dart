@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
         children: [
           // Background color
           Container(
-            color: Colors.green,  // Set your desired background color here
+            color: const Color(0xFF5EAB70),   // Set your desired background color here
           ),
           // Full-screen image
           Positioned(
