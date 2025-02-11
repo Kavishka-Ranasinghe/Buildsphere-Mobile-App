@@ -59,6 +59,15 @@ class RawItemDetailScreen extends StatelessWidget {
             Text('Item Type: $itemType', style: const TextStyle(fontSize: 16)),
             Text('Price: $price', style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 10),
+
+            // Shop Address (Now Above Shop Name Link)
+            Text(
+              'Shop Address: $shopAddress',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 5),
+
+            // Shop Name Link (Clickable)
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -87,8 +96,10 @@ class RawItemDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
+
             const SizedBox(height: 10),
-            Text('Shop Address: $shopAddress', style: const TextStyle(fontSize: 16)),
+
+            // Contact Section (Clickable Phone Number)
             GestureDetector(
               onTap: () => _callNumber(context, contactNumber), // Call function when tapped
               child: Row(

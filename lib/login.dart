@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'Signup Pages/other_sign_up.dart'; // Import SignUpPage for navigation
 import 'room_section.dart'; // Import HomePage for navigation
-import 'hso_home.dart'; // HardwareShopOwnerPage
+import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -86,7 +86,7 @@ class LoginPage extends StatelessWidget {
                           // Navigate to HomePage on successful login
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+                            MaterialPageRoute(builder: (context) => const room_section()),
                             //room_section() -- customer and others home
                             //HardwareShopOwnerPage() -- hardware shop owner home
                           );

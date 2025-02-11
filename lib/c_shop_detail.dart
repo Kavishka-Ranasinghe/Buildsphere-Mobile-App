@@ -6,12 +6,14 @@ class ShopDetailScreen extends StatelessWidget {
   final String shopName;
   final String shopAddress;
   final String contactNumber;
+  final String? googleMapLink;
 
   const ShopDetailScreen({
     super.key,
     required this.shopName,
     required this.shopAddress,
     required this.contactNumber,
+    this.googleMapLink = "https://maps.app.goo.gl/5bcF7PPB1ji3Z6kG9", // Default Google Map link
   });
 
   // Function to launch the phone dialer
@@ -27,6 +29,18 @@ class ShopDetailScreen extends StatelessWidget {
     }
   }
 
+  // Function to open Google Maps
+  void _openGoogleMaps(BuildContext context, String url) async {
+    final Uri googleMapsUri = Uri.parse(url);
+
+    if (await canLaunchUrl(googleMapsUri)) {
+      await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open Google Maps')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +51,7 @@ class ShopDetailScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context);  // Navigate back
+            Navigator.pop(context); // Navigate back
           },
         ),
       ),
@@ -70,10 +84,8 @@ class ShopDetailScreen extends StatelessWidget {
 
             // Shop Image (Placeholder)
             Center(
-              child: Image.network(
-                'https://via.placeholder.com/150',  // Placeholder image
-                height: 150,
-                width: 150,
+              child: Image.asset(
+                'assets/images/h_shop.jpg', // Use the same background image
                 fit: BoxFit.cover,
               ),
             ),
@@ -105,6 +117,33 @@ class ShopDetailScreen extends StatelessWidget {
                       color: Colors.blue,
                       decoration: TextDecoration.underline,
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Google Maps Section (Whole row clickable)
+            GestureDetector(
+              onTap: googleMapLink != null && googleMapLink!.isNotEmpty
+                  ? () => _openGoogleMaps(context, googleMapLink!)
+                  : null,
+              child: Row(
+                children: [
+                  Icon(Icons.location_pin, color: Colors.red, size: 30),
+                  const SizedBox(width: 8),
+                  googleMapLink != null && googleMapLink!.isNotEmpty
+                      ? Text(
+                    'View on Google Maps',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  )
+                      : const Text(
+                    'Location not given',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
               ),

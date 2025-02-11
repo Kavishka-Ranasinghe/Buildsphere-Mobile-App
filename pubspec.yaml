@@ -34,6 +34,8 @@ dependencies:
   shared_preferences: ^2.0.9  # Check for the latest version
   image_picker: ^0.8.7+3
   url_launcher: ^6.3.1  # Version as of now; check for latest version
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
 flutter_native_splash:
   color: "#42a5f5" # Background color for the splash screen
   image: assets/images/splash01.png  # Path to your splash image
@@ -71,6 +73,7 @@ flutter:
       - assets/images/sign-up.jpeg
       - assets/images/profile.gif
       - assets/images/c.jpg
+      - assets/images/h_shop.jpg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

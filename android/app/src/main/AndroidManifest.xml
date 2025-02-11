@@ -1,12 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Add permission for making phone calls -->
+    <!-- Permissions for phone calls -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
+
+    <!-- Permissions for location services -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:label="buildup_ceylon"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
 
         <activity
             android:name=".MainActivity"
@@ -30,7 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- Add intent filter to allow phone call dialing -->
+            <!-- Intent filter for phone call dialing -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -43,6 +52,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
 
     </application>
 
