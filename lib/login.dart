@@ -86,7 +86,7 @@ class LoginPage extends StatelessWidget {
                           // Navigate to HomePage on successful login
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const room_section()),
+                            MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
                             //room_section() -- customer and others home
                             //HardwareShopOwnerPage() -- hardware shop owner home
                           );

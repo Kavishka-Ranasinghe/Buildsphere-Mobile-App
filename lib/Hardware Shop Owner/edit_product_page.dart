@@ -15,7 +15,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late TextEditingController nameController;
   late TextEditingController priceController;
   File? _image;
-  String? _existingImageUrl; // This stores the existing image URL from the database
+  String? _existingImageUrl; // Stores existing image URL from database
 
   @override
   void initState() {
@@ -23,7 +23,7 @@ class _EditProductPageState extends State<EditProductPage> {
     nameController = TextEditingController(text: widget.material['name'] ?? '');
     priceController = TextEditingController(text: widget.material['price']?.toString() ?? '0');
 
-    // Fetch the existing image URL (it will be a file path or Firebase URL later)
+    // Fetch existing image URL
     _existingImageUrl = widget.material['image'];
     _image = null; // No new image picked yet
   }
@@ -52,12 +52,44 @@ class _EditProductPageState extends State<EditProductPage> {
     });
   }
 
+  void _deleteProduct() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Product'),
+          content: const Text('Are you sure you want to delete this product?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // Close dialog
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context, {'delete': true}); // Return delete action
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Product'),
         backgroundColor: Colors.green,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.white),
+            onPressed: _deleteProduct, // Call delete function
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -99,6 +131,14 @@ class _EditProductPageState extends State<EditProductPage> {
                   onPressed: _saveChanges,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                   child: const Text('Save Changes'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: ElevatedButton(
+                  onPressed: _deleteProduct,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: const Text('Delete Product'),
                 ),
               ),
             ],
