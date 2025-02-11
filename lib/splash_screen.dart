@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'main.dart'; // Make sure this points to your main app entry
-import 'sign_up.dart'; // Make sure this points to your main app entry
+import 'Signup Pages/other_sign_up.dart'; // Make sure this points to your main app entry
 
 
 class SplashScreen extends StatefulWidget {
