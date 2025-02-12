@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'hso_home.dart'; // Shop Owner Page
-//import 'add_product_page.dart'; // Add Product Page
+import 'hso_add_product.dart'; // Add Product Page
 import '../profile.dart'; // Profile Page
 
 
@@ -44,7 +44,7 @@ class AppDrawer extends StatelessWidget {
           ),
 
           // Add Product Section (New Feature)
-          /*ListTile(
+          ListTile(
             leading: const Icon(Icons.add_box, color: Colors.green),
             title: const Text(
               'Add Product',
@@ -59,7 +59,7 @@ class AppDrawer extends StatelessWidget {
             },
           ),
 
-           */
+
 
           
 

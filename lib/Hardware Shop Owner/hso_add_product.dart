@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'hso_home.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -36,13 +37,15 @@ class _AddProductPageState extends State<AddProductPage> {
       return;
     }
 
-    // This will later save to Firebase (for now, we just return the data)
-    Navigator.pop(context, {
-      'image': _image?.path, // Later replace this with a Firebase Storage URL
-      'category': selectedCategory,
-      'name': nameController.text,
-      'price': priceController.text,
-      'description': descriptionController.text,
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Product added successfully!")),
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HardwareShopOwnerPage()),
+      );
     });
   }
 

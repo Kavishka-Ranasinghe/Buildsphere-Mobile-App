@@ -1,11 +1,53 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'Signup Pages/other_sign_up.dart'; // Import SignUpPage for navigation
-import 'room_section.dart'; // Import HomePage for navigation
+import 'Signup Pages/other_sign_up.dart'; // SignUpPage for navigation
+import 'room_section.dart'; // HomePage for normal users
 import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
+import 'Admin/admin_dash.dart'; // Admin Dashboard
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  // Admin Credentials
+  final String adminEmail = "ceylon@gmail.com";
+  final String adminPassword = "password";
+
+  void _login() {
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter email and password")),
+      );
+      return;
+    }
+
+    if (email == adminEmail && password == adminPassword) {
+      // Navigate to Admin Panel
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminPage()),
+      );
+    } else {
+      // Navigate to other sections (modify as needed)
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+        //room_section() -- customer and others home
+        //HardwareShopOwnerPage() -- hardware shop owner home
+        //AdminPage() -- admin
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,24 +115,45 @@ class LoginPage extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       // Email Input
-                      _buildInputField("Email"),
+                      TextField(
+                        controller: emailController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: "Email",
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.1),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.8)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 15),
 
                       // Password Input
-                      _buildInputField("Password", isPassword: true),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: "Password",
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.1),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.8)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 20),
 
                       // Login Button
                       ElevatedButton(
-                        onPressed: () {
-                          // Navigate to HomePage on successful login
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
-                            //room_section() -- customer and others home
-                            //HardwareShopOwnerPage() -- hardware shop owner home
-                          );
-                        },
+                        onPressed: _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white.withOpacity(0.3),
                           foregroundColor: Colors.white,
@@ -130,25 +193,6 @@ class LoginPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Input Field Widget
-  Widget _buildInputField(String label, {bool isPassword = false}) {
-    return TextField(
-      obscureText: isPassword,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.8)),
-          borderRadius: BorderRadius.circular(10),
-        ),
       ),
     );
   }
