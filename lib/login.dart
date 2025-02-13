@@ -4,6 +4,8 @@ import 'Signup Pages/other_sign_up.dart'; // SignUpPage for navigation
 import 'room_section.dart'; // HomePage for normal users
 import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
 import 'Admin/admin_dash.dart'; // Admin Dashboard
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,12 +17,13 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _obscurePassword = true; // Toggle password visibility
 
   // Admin Credentials
   final String adminEmail = "ceylon@gmail.com";
   final String adminPassword = "password";
 
-  void _login() {
+  void _login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
@@ -31,20 +34,50 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    // Check if entered credentials match admin credentials
     if (email == adminEmail && password == adminPassword) {
-      // Navigate to Admin Panel
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const AdminPage()),
+        MaterialPageRoute(builder: (context) => const AdminPage()), // Redirect to Admin Panel
       );
-    } else {
-      // Navigate to other sections (modify as needed)
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
-        //room_section() -- customer and others home
-        //HardwareShopOwnerPage() -- hardware shop owner home
-        //AdminPage() -- admin
+      return;
+    }
+
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Fetch user role from Firestore
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+        if (userDoc.exists) {
+          String userRole = userDoc['role'];
+
+          if (userRole == 'Client' || userRole == 'Engineer' || userRole == 'Planner') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const room_section()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User data not found.")),
+          );
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "Login failed")),
       );
     }
   }
@@ -132,10 +165,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 15),
 
-                      // Password Input
+                      // Password Input with Show Password Button
                       TextField(
                         controller: passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: "Password",
@@ -146,6 +179,17 @@ class _LoginPageState extends State<LoginPage> {
                           focusedBorder: OutlineInputBorder(
                             borderSide: BorderSide(color: Colors.white.withOpacity(0.8)),
                             borderRadius: BorderRadius.circular(10),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                              color: Colors.white70,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword; // Toggle password visibility
+                              });
+                            },
                           ),
                         ),
                       ),

@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../login.dart'; // Import the LoginPage
 import 'hardware_shop_owner_signup.dart'; // Import the HardwareShopOwnerSignUpPage
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -58,6 +61,43 @@ class _SignUpPageState extends State<SignUpPage> {
     return emailRegex.hasMatch(email);
   }
 
+  void _signUpWithFirebase() async {
+    try {
+      // Create user in Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Save user details in Firestore
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': _selectedRole,
+          'createdAt': Timestamp.now(),
+        });
+
+        await user.updateDisplayName(_nameController.text.trim());
+        await user.reload();
+
+        _showSignUpSuccessDialog();
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        if (e.code == 'email-already-in-use') {
+          _emailError = 'Email is already in use';
+        } else if (e.code == 'weak-password') {
+          _passwordError = 'Weak password';
+        } else {
+          _emailError = 'Sign-up failed: ${e.message}';
+        }
+      });
+    }
+  }
+
   void _validateInputs() {
     setState(() {
       _nameError = _nameController.text.isEmpty ? 'Name is required' : null;
@@ -78,6 +118,7 @@ class _SignUpPageState extends State<SignUpPage> {
         _emailError == null &&
         _passwordError == null &&
         _confirmPasswordError == null) {
+      _signUpWithFirebase();
       _showSignUpSuccessDialog();
     }
   }

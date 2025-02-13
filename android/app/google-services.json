@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "880158555087",
+    "project_id": "buildup-ceylon",
+    "storage_bucket": "buildup-ceylon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:880158555087:android:d18ff3048efd70239230ba",
+        "android_client_info": {
+          "package_name": "com.example.buildup_ceylon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDMcPKguTn3kcwKgkmgM2s42hYZ4l1ooI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
