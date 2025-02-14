@@ -53,6 +53,28 @@ class _SignUpPageState extends State<SignUpPage> {
         );
       },
     );
+  }void _waitapproval() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Waiting'),
+          content: const Text('Wait for approval.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                ); // Navigate to LoginPage
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   bool _validateEmail(String email) {
@@ -119,7 +141,7 @@ class _SignUpPageState extends State<SignUpPage> {
         _passwordError == null &&
         _confirmPasswordError == null) {
       _signUpWithFirebase();
-      _showSignUpSuccessDialog();
+      _waitapproval();
     }
   }
 
@@ -204,6 +226,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         const SizedBox(height: 15),
 
                         _buildInputField("Password", _passwordController, _passwordError, isPassword: true),
+
                         const SizedBox(height: 15),
 
                         _buildInputField("Confirm Password", _confirmPasswordController, _confirmPasswordError, isPassword: true),
@@ -246,7 +269,7 @@ class _SignUpPageState extends State<SignUpPage> {
           Text(error, style: const TextStyle(color: Colors.red)),
         TextFormField(
           controller: controller,
-          obscureText: isPassword,
+          obscureText: false,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: label,

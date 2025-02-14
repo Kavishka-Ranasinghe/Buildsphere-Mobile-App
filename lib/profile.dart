@@ -20,9 +20,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   String _userId = "";
-  String _userRole = ""; // Store user role
+  String _userRole = "";
   String? _localImagePath;
-  String? _downloadURL; // 🔹 Ensure this is declared in the class
+  String? _downloadURL;
 
   @override
   void initState() {
@@ -30,7 +30,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
-  // Function to load user data from Firestore
   Future<void> _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -39,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
-          .get(const GetOptions(source: Source.server)); // ✅ Fetch fresh data
+          .get(const GetOptions(source: Source.server));
 
       if (userDoc.exists) {
         setState(() {
@@ -53,78 +52,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Function to pick an image and save it locally
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      File newImage = File(pickedFile.path);
-
-      // ✅ Save image locally
-      final directory = await getApplicationDocumentsDirectory();
-      final localPath = '${directory.path}/profile_${_userId}.jpg';
-      final savedImage = await newImage.copy(localPath);
-
-      setState(() {
-        _profileImage = savedImage;
-        _localImagePath = localPath;
-      });
-
-      // ✅ Upload image to Firebase Storage
-      await _uploadProfileImage(savedImage);
-    }
+  Future<void> _deleteAccount(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Account"),
+          content: const Text("Are you sure you want to delete your account? This action cannot be undone."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _confirmDelete();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  // Upload profile image to Firebase Storage
-  Future<void> _uploadProfileImage(File imageFile) async {
+  Future<void> _confirmDelete() async {
     try {
-      String filePath = 'profile_pictures/$_userId.jpg';
-      UploadTask uploadTask = FirebaseStorage.instance.ref(filePath).putFile(imageFile);
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
 
-      await uploadTask; // ✅ Wait until the upload completes
+      // Step 1: Delete user document from Firestore
+      await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
 
-      // ✅ Get Download URL
-      String imageURL = await FirebaseStorage.instance.ref(filePath).getDownloadURL();
+      // Step 2: Delete profile image from Firebase Storage (if exists)
+      if (_downloadURL != null) {
+        try {
+          await FirebaseStorage.instance.ref('profile_pictures/$_userId.jpg').delete();
+        } catch (e) {
+          print("No profile picture found to delete.");
+        }
+      }
 
-      setState(() {
-        _localImagePath = imageFile.path; // ✅ Update local image path
-        _downloadURL = imageURL; // ✅ Store Firebase URL
-      });
+      // Step 3: Delete user from Firebase Authentication
+      await user.delete();
 
-      // ✅ Save paths to Firestore
-      await FirebaseFirestore.instance.collection('users').doc(_userId).update({
-        'localProfileImage': _localImagePath,
-        'profileImage': imageURL, // ✅ Store Firebase URL as well
-      });
+      // Step 4: Redirect to Login Page
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile picture updated successfully!")),
+        const SnackBar(content: Text("Account deleted successfully")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to upload image: $e")),
+        SnackBar(content: Text("Error deleting account: $e")),
       );
     }
   }
 
-  // Function to save updated user data
-  Future<void> _saveChanges() async {
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(_userId).update({
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating profile: $e")),
-      );
-    }
-  }
-
-  // Function to log out and redirect to login page
   void _logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     Navigator.pushAndRemoveUntil(
@@ -156,11 +146,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               Center(
                 child: GestureDetector(
-                  onTap: _pickImage,
+                  onTap: () {}, // Placeholder for profile picture
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: _localImagePath != null
-                        ? FileImage(File(_localImagePath!)) // ✅ Use Local Image
+                        ? FileImage(File(_localImagePath!))
                         : _downloadURL != null
                         ? NetworkImage("$_downloadURL?t=${DateTime.now().millisecondsSinceEpoch}")
                         : const AssetImage('assets/images/profile.gif') as ImageProvider,
@@ -169,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               const SizedBox(height: 10),
-              if (_downloadURL == null && _localImagePath == null) // ✅ Show this only if no image exists
+              if (_downloadURL == null && _localImagePath == null)
                 const Center(
                   child: Text(
                     'Please upload a profile picture.',
@@ -178,7 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               const SizedBox(height: 20),
 
-              // Display Role as Read-Only Text
               Text(
                 'Selected Role: $_userRole',
                 style: const TextStyle(
@@ -188,7 +177,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Name Input
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -198,7 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 10),
 
-              // Email Input
               TextField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -209,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
 
               ElevatedButton(
-                onPressed: _saveChanges,
+                onPressed: () {},
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 child: const Text('Save Changes'),
               ),
@@ -221,6 +208,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 icon: const Icon(Icons.logout, color: Colors.white),
                 label: const Text('Logout', style: TextStyle(color: Colors.white)),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 🔴 Delete Account Button
+              ElevatedButton.icon(
+                onPressed: () => _deleteAccount(context),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                icon: const Icon(Icons.delete_forever, color: Colors.white),
+                label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
