@@ -4,6 +4,7 @@ import '../login.dart'; // Import the LoginPage
 import 'hardware_shop_owner_signup.dart'; // Import the HardwareShopOwnerSignUpPage
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../room_section.dart';
 
 
 class SignUpPage extends StatefulWidget {
@@ -36,15 +37,15 @@ class _SignUpPageState extends State<SignUpPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Success'),
-          content: const Text('Sign-up successful! You can now log in.'),
+          title: const Text('Yeah!!! 🎉'),
+          content: const Text('Sign-up successful!,You will be redirected to home page.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  MaterialPageRoute(builder: (context) => const room_section()),
                 ); // Navigate to LoginPage
               },
               child: const Text('OK'),
@@ -59,7 +60,7 @@ class _SignUpPageState extends State<SignUpPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Waiting'),
-          content: const Text('Wait for approval.'),
+          content: const Text('Wait for approval, Give us few Seconds please.'),
           actions: [
             TextButton(
               onPressed: () {
