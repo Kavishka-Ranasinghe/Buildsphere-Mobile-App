@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'profile.dart';
+import 'Other users/profile.dart';
 import 'app_drawer.dart';
 import 'c_raw_item_detail.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'hso_home.dart'; // Shop Owner Page
 import 'hso_add_product.dart'; // Add Product Page
-import '../profile.dart'; // Profile Page
+import '../Other users/profile.dart'; // Profile Page
 
 
 class AppDrawer extends StatelessWidget {

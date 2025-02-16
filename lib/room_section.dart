@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'profile.dart';
+import 'Other users/profile.dart';
 import 'app_drawer.dart';
 import 'Other users/dashboard_item.dart';
 import 'join_room.dart';

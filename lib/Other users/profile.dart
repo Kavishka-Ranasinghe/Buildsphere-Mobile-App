@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'login.dart'; // Import the Login Page
+import '../login.dart'; // Import the Login Page
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -141,33 +141,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _uploadProfileImage(File imageFile) async {
     try {
       String filePath = 'profile_pictures/$_userId.jpg';
-      UploadTask uploadTask = FirebaseStorage.instance.ref(filePath).putFile(imageFile);
+      Reference ref = FirebaseStorage.instance.ref(filePath);
 
-      await uploadTask; // ✅ Wait until the upload completes
+      UploadTask uploadTask = ref.putFile(imageFile);
+      TaskSnapshot snapshot = await uploadTask;
 
-      // ✅ Get Download URL
-      String imageURL = await FirebaseStorage.instance.ref(filePath).getDownloadURL();
+      if (snapshot.state == TaskState.success) {
+        // ✅ Fetch Download URL after successful upload
+        String imageURL = await ref.getDownloadURL();
 
-      setState(() {
-        _localImagePath = imageFile.path; // ✅ Update local image path
-        _downloadURL = imageURL; // ✅ Store Firebase URL
-      });
+        setState(() {
+          _localImagePath = imageFile.path;
+          _downloadURL = imageURL;
+        });
 
-      // ✅ Save paths to Firestore
-      await FirebaseFirestore.instance.collection('users').doc(_userId).update({
-        'localProfileImage': _localImagePath,
-        'profileImage': imageURL, // ✅ Store Firebase URL as well
-      });
+        // ✅ Save URL to Firestore
+        await FirebaseFirestore.instance.collection('users').doc(_userId).update({
+          'localProfileImage': _localImagePath,
+          'profileImage': imageURL,
+        });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile picture updated successfully!")),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile picture updated successfully!")),
+        );
+      } else {
+        throw Exception("Image upload failed");
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to upload image: $e")),
       );
     }
   }
+
 
   // Function to save updated user data
   Future<void> _saveChanges() async {
