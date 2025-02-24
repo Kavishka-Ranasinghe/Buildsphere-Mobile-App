@@ -54,7 +54,8 @@ class _SignUpPageState extends State<SignUpPage> {
         );
       },
     );
-  }void _waitapproval() {
+  }
+  void _waitapproval() {
     showDialog(
       context: context,
       builder: (BuildContext context) {

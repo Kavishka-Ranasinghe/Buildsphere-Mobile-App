@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'hso_profile_edit.dart';
 import 'hso_app_drawer.dart';
 import 'edit_product_page.dart';
@@ -13,14 +16,36 @@ class HardwareShopOwnerPage extends StatefulWidget {
 class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
   String selectedCategory = 'All';
 
-  // Hardcoded shop name for now (can be dynamically loaded later)
-  final String shopName = "Prime_Hardware";
+  // Shop name will be dynamically loaded from Firestore.
+  String _shopName = "Loading...";
 
   final List<String> categories = ['All', 'Cement', 'Soil', 'Brick', 'Pebbles'];
 
   @override
+  void initState() {
+    super.initState();
+    _fetchShopName();
+  }
+
+  // Fetch the shop name from Firestore using the current user's UID.
+  void _fetchShopName() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      if (userDoc.exists) {
+        setState(() {
+          _shopName = userDoc['shopName'] ?? "Unknown Shop";
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Ensure each product has a category before filtering
+    // Filter products based on selected category.
     List<Map<String, dynamic>> filteredMaterials = rawMaterials.where((material) {
       if (selectedCategory == 'All') return true;
       return material['category']?.toString().toLowerCase() == selectedCategory.toLowerCase();
@@ -50,17 +75,18 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Display the shop name fetched from the database.
                       Text(
-                        shopName,  // Shop Name on the first line
+                        _shopName,
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.yellowAccent,
                         ),
                       ),
-                      Text(
-                        'Products',  // "Products" on the second line
-                        style: const TextStyle(
+                      const Text(
+                        'Products',
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
@@ -69,7 +95,6 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
                     ],
                   ),
                 ),
-
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -85,7 +110,6 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
               ],
             ),
           ),
-
           // Category Selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -120,7 +144,6 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
               ),
             ),
           ),
-
           // Products List
           Expanded(
             child: filteredMaterials.isEmpty
@@ -135,7 +158,6 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
               itemCount: filteredMaterials.length,
               itemBuilder: (context, index) {
                 final material = filteredMaterials[index];
-
                 return GestureDetector(
                   onTap: () async {
                     final updatedMaterial = await Navigator.push(
@@ -173,7 +195,7 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
   }
 }
 
-// Sample data for raw building materials
+// Sample data for raw building materials.
 List<Map<String, dynamic>> rawMaterials = [
   {'name': 'Lanwa Cement', 'price': '1000', 'category': 'Cement'},
   {'name': 'Tokyo Cement', 'price': '1250', 'category': 'Cement'},

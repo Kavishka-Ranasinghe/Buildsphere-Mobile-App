@@ -36,37 +36,55 @@ class _LoginPageState extends State<LoginPage> {
 
     // Check if entered credentials match admin credentials
     if (email == adminEmail && password == adminPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Login Successful")),
+      );
+      await Future.delayed(const Duration(seconds: 1));
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const AdminPage()), // Redirect to Admin Panel
+        MaterialPageRoute(builder: (context) => const AdminPage()),
       );
       return;
     }
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
       User? user = userCredential.user;
 
       if (user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Login Successful")),
+        );
+        await Future.delayed(const Duration(seconds: 1));
+
         // Fetch user role from Firestore
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
 
         if (userDoc.exists) {
           String userRole = userDoc['role'];
 
-          if (userRole == 'Client' || userRole == 'Engineer' || userRole == 'Planner') {
+          if (userRole == 'Client' ||
+              userRole == 'Engineer' ||
+              userRole == 'Planner') {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const room_section()),
             );
-          } else {
+          } else if (userRole == 'Hardware Shop Owner') {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+              MaterialPageRoute(
+                  builder: (context) => const HardwareShopOwnerPage()),
+            );
+          } else {
+            // Handle other roles if needed or show an error
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Unknown user role")),
             );
           }
         } else {
@@ -156,9 +174,11 @@ class _LoginPageState extends State<LoginPage> {
                           labelStyle: const TextStyle(color: Colors.white70),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.1),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.8)),
+                            borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.8)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -175,14 +195,18 @@ class _LoginPageState extends State<LoginPage> {
                           labelStyle: const TextStyle(color: Colors.white70),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.1),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.8)),
+                            borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.8)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                              _obscurePassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                               color: Colors.white70,
                             ),
                             onPressed: () {
@@ -222,7 +246,8 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const SignUpPage()),
+                            MaterialPageRoute(
+                                builder: (context) => const SignUpPage()),
                           );
                         },
                         child: const Text(

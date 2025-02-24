@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../login.dart'; // Import the LoginPage
+import '../login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../Hardware Shop Owner/hso_home.dart';
 
 class HardwareShopOwnerSignUpPage extends StatefulWidget {
   const HardwareShopOwnerSignUpPage({super.key});
@@ -27,21 +30,45 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
   String? _shopPasswordError;
   String? _shopConfirmPasswordError;
 
+  // This dialog mimics the "waiting for approval" behavior seen in the other signup page.
   void _showSignUpSuccessDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Success'),
-          content: const Text('Sign-up successful! You can now log in.'),
+          title: const Text('Yeah!!! 🎉'),
+          content: const Text('Sign-up successful!,You will be redirected to seller home page.'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+                ); // Navigate to LoginPage
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  void _waitapproval() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Waiting'),
+          content: const Text('Wait for approval, Give us few Seconds please.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
-                );
+                ); // Navigate to LoginPage
               },
               child: const Text('OK'),
             ),
@@ -52,9 +79,51 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
   }
 
   bool _validateEmail(String email) {
-    final RegExp emailRegex = RegExp(
-        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final RegExp emailRegex =
+    RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     return emailRegex.hasMatch(email);
+  }
+
+  void _signUpWithFirebase() async {
+    try {
+      // Create user in Firebase Authentication using shop email and password
+      UserCredential userCredential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _shopEmailController.text.trim(),
+        password: _shopPasswordController.text.trim(),
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Save shop details in Firestore along with role "Hardware Shop Owner"
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'shopName': _shopNameController.text.trim(),
+          'email': _shopEmailController.text.trim(),
+          'address': _shopAddressController.text.trim(),
+          'phone': _shopPhoneController.text.trim(),
+          'role': 'Hardware Shop Owner',
+          'createdAt': Timestamp.now(),
+        });
+
+        // Update display name with shop name
+        await user.updateDisplayName(_shopNameController.text.trim());
+        await user.reload();
+
+        // Instead of showing a success message that immediately redirects, we now show the waiting dialog
+        _showSignUpSuccessDialog();
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        if (e.code == 'email-already-in-use') {
+          _shopEmailError = 'Email is already in use';
+        } else if (e.code == 'weak-password') {
+          _shopPasswordError = 'Weak password';
+        } else {
+          _shopEmailError = 'Sign-up failed: ${e.message}';
+        }
+      });
+    }
   }
 
   void _validateInputs() {
@@ -79,7 +148,8 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
         _shopPhoneError == null &&
         _shopPasswordError == null &&
         _shopConfirmPasswordError == null) {
-      _showSignUpSuccessDialog();
+      _signUpWithFirebase();
+      _waitapproval();
     }
   }
 
@@ -91,11 +161,10 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
           // Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/sign-up.jpeg', // Use the same background image
+              'assets/images/sign-up.jpeg',
               fit: BoxFit.cover,
             ),
           ),
-
           // Blur effect overlay
           Positioned.fill(
             child: BackdropFilter(
@@ -105,7 +174,6 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
               ),
             ),
           ),
-
           // Form content
           Center(
             child: SingleChildScrollView(
@@ -131,33 +199,25 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
                           ),
                         ),
                         const SizedBox(height: 20),
-
                         _buildInputField("Shop Name", _shopNameController, _shopNameError),
                         const SizedBox(height: 15),
-
                         _buildInputField("Shop Email", _shopEmailController, _shopEmailError),
                         const SizedBox(height: 15),
-
                         _buildInputField("Shop Address", _shopAddressController, _shopAddressError),
                         const SizedBox(height: 15),
-
-                        _buildInputField("Telephone Number", _shopPhoneController, _shopPhoneError, keyboardType: TextInputType.phone),
+                        _buildInputField("Telephone Number", _shopPhoneController, _shopPhoneError,
+                            keyboardType: TextInputType.phone),
                         const SizedBox(height: 15),
-
                         _buildInputField("Password", _shopPasswordController, _shopPasswordError, isPassword: true),
                         const SizedBox(height: 15),
-
                         _buildInputField("Confirm Password", _shopConfirmPasswordController, _shopConfirmPasswordError, isPassword: true),
                         const SizedBox(height: 20),
-
                         _buildButton("Sign Up", _validateInputs),
                         const SizedBox(height: 15),
-
                         _buildButton("Back to Other User Sign Up Page", () {
                           Navigator.pop(context);
                         }),
                         const SizedBox(height: 15),
-
                         _buildButton("Login Page", () {
                           Navigator.push(
                             context,
@@ -176,7 +236,8 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller, String? error, {bool isPassword = false, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildInputField(String label, TextEditingController controller, String? error,
+      {bool isPassword = false, TextInputType keyboardType = TextInputType.text}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -184,7 +245,7 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
           Text(error, style: const TextStyle(color: Colors.red)),
         TextFormField(
           controller: controller,
-          obscureText: isPassword,
+          obscureText: false,
           keyboardType: keyboardType,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
