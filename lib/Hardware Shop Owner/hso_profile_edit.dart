@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Added for Firebase Authentication
-import 'package:cloud_firestore/cloud_firestore.dart'; // Added for Firestore operations
-import 'package:firebase_storage/firebase_storage.dart'; // Added for Firebase Storage
 import '../login.dart'; // Import the Login Page
 
 class ProfileScreen extends StatefulWidget {
@@ -23,10 +20,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
 
-  // Used for delete account process
-  String _userId = "";
-  String? _downloadURL; // To store profile image URL if any
-
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -37,9 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // Function to log out and redirect to login page using Firebase sign-out
-  void _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
+  // Function to log out and redirect to login page
+  void _logout(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -47,69 +39,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Function to delete account with confirmation dialog
-  Future<void> _deleteAccount(BuildContext context) async {
+  // Function to delete profile
+  void _deleteProfile(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text("Delete Account"),
-          content: const Text("Are you sure you want to delete your account? This action cannot be undone."),
-          actions: <Widget>[
+          title: const Text("Delete Profile"),
+          content: const Text("Are you sure you want to delete your profile? This action cannot be undone."),
+          actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("No"),
             ),
             TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await _confirmDelete();
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Profile deleted successfully")),
+                );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                      (route) => false,
+                );
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text("Delete"),
+              child: const Text("Yes", style: TextStyle(color: Colors.red)),
             ),
           ],
         );
       },
     );
-  }
-
-  Future<void> _confirmDelete() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      _userId = user.uid;
-
-      // Step 1: Delete user document from Firestore
-      await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
-
-      // Step 2: Delete profile image from Firebase Storage (if exists)
-      if (_downloadURL != null) {
-        try {
-          await FirebaseStorage.instance.ref('profile_pictures/$_userId.jpg').delete();
-        } catch (e) {
-          print("No profile picture found to delete.");
-        }
-      }
-
-      // Step 3: Delete user from Firebase Authentication
-      await user.delete();
-
-      // Step 4: Redirect to Login Page
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-            (route) => false,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account deleted successfully")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting account: $e")),
-      );
-    }
   }
 
   // Function to validate Google Maps link
@@ -220,20 +181,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     backgroundColor: Colors.green,
                   ),
                   child: const Text('Save Changes'),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => _deleteAccount(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                  icon: const Icon(Icons.delete_forever, color: Colors.white),
-                  label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => _logout(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text('Logout', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
