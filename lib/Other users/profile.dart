@@ -102,23 +102,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
-          .get(const GetOptions(source: Source.server));
+          .get(const GetOptions(source: Source.server)); // ✅ Fetch fresh data
 
       if (userDoc.exists) {
         setState(() {
           _nameController.text = userDoc['name'];
           _emailController.text = userDoc['email'];
-          _userRole = userDoc['role'] ?? "No role assigned"; // ✅ Prevent null values
+          _userRole = userDoc['role'];
           _localImagePath = userDoc['localProfileImage'] ?? null;
           _downloadURL = userDoc['profileImage'] ?? null;
         });
-        print("User Role: $_userRole"); // ✅ Debugging output
-      } else {
-        print("User document does not exist.");
       }
     }
   }
-
 
   // Function to pick an image and save it locally
   Future<void> _pickImage() async {
