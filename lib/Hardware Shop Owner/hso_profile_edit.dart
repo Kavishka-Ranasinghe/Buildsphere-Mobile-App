@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../login.dart'; // Import the Login Page
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import '../login.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,12 +18,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _mapLinkController = TextEditingController(); // New Google Maps link controller
+  final TextEditingController _mapLinkController = TextEditingController();
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
+  String _userId = "";
+  String? _downloadURL;
 
-  // Function to pick an image from the gallery
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile();
+  }
+
+  // Fetch shop details from Firestore
+  Future<void> _fetchUserProfile() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    _userId = user.uid;
+
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_userId).get();
+
+    if (userDoc.exists) {
+      setState(() {
+        _nameController.text = userDoc['shopName'] ?? '';
+        _emailController.text = userDoc['email'] ?? '';
+        _phoneController.text = userDoc['phone'] ?? '';
+        _addressController.text = userDoc['address'] ?? '';
+      });
+    }
+  }
+
+  // Update shop details in Firestore
+  Future<void> _updateProfile() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(_userId).update({
+          'shopName': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile updated successfully")),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error updating profile: $e")),
+        );
+      }
+    }
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     setState(() {
@@ -30,8 +80,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  // Function to log out and redirect to login page
-  void _logout(BuildContext context) {
+  void _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -39,33 +89,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Function to delete profile
-  void _deleteProfile(BuildContext context) {
+  Future<void> _deleteAccount(BuildContext context) async {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text("Delete Profile"),
-          content: const Text("Are you sure you want to delete your profile? This action cannot be undone."),
-          actions: [
+          title: const Text("Delete Account"),
+          content: const Text("Are you sure you want to delete your account? This action cannot be undone."),
+          actions: <Widget>[
             TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text("No"),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text("Cancel"),
             ),
             TextButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Profile deleted successfully")),
-                );
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                      (route) => false,
-                );
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _confirmDelete();
               },
-              child: const Text("Yes", style: TextStyle(color: Colors.red)),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Delete"),
             ),
           ],
         );
@@ -73,7 +115,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Function to validate Google Maps link
+  Future<void> _confirmDelete() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      _userId = user.uid;
+
+      await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
+      if (_downloadURL != null) {
+        try {
+          await FirebaseStorage.instance.ref('profile_pictures/$_userId.jpg').delete();
+        } catch (e) {
+          print("No profile picture found to delete.");
+        }
+      }
+      await user.delete();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Account deleted successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting account: $e")),
+      );
+    }
+  }
+
   String? _validateMapLink(String? value) {
     if (value != null && value.isNotEmpty) {
       final regex = RegExp(r'^https?:\/\/(www\.)?maps\.app\.goo\.gl\/');
@@ -169,18 +241,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Profile updated")),
-                      );
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
+                  onPressed: _updateProfile,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                   child: const Text('Save Changes'),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => _deleteAccount(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                  icon: const Icon(Icons.delete_forever, color: Colors.white),
+                  label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => _logout(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text('Logout', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
