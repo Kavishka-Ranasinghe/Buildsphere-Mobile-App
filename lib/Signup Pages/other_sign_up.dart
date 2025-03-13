@@ -149,6 +149,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       body: Stack(
         children: [
@@ -170,14 +171,15 @@ class _SignUpPageState extends State<SignUpPage> {
             ),
           ),
 
-          // "Buildup Ceylon" text
+          // "Buildsphere" text
+          if (!isKeyboardOpen)
           Positioned(
-            top: 50,
+            top:32,
             left: 0,
             right: 0,
             child: Center(
               child: Text(
-                "Buildup Ceylon",
+                "Buildsphere",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,

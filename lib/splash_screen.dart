@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
   // Function to check the login status and navigate accordingly
   _navigateToNextScreen() async {
     // Simulate a loading period for the splash screen
-    await Future.delayed(const Duration(seconds: 5), () {});
+    await Future.delayed(const Duration(seconds: 7), () {});
 
     // Access SharedPreferences to check if the user is logged in
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
             left: 0,
             right: 0,
             child: Text(
-              'Ceylon Buildup',  // Your app name
+              'Buildsphere',  // Your app name
               style: TextStyle(
                 color: Colors.yellow,  // Text color
                 fontSize: screenWidth * 0.1,  // Text size relative to screen width

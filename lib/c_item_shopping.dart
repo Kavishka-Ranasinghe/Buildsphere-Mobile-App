@@ -33,7 +33,7 @@ class ItemShoppingScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Buildup Ceylon',
+          'Buildsphere',
           style: TextStyle(
             fontSize: 35,
             fontWeight: FontWeight.bold,

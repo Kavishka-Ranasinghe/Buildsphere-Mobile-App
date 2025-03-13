@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true; // Toggle password visibility
 
   // Admin Credentials
-  final String adminEmail = "ceylon@gmail.com";
+  final String adminEmail = "Buildsphere@gmail.com";
   final String adminPassword = "password";
 
   void _login() async {
@@ -125,6 +125,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -141,28 +143,29 @@ class _LoginPageState extends State<LoginPage> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
               child: Container(
-                color: Colors.black.withOpacity(0.2), // Adds a subtle dark overlay
+                color: Colors.black.withOpacity(0.5), // Adds a subtle dark overlay
               ),
             ),
           ),
 
-          // Buildup Ceylon Text
-          Positioned(
-            top: 70,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Text(
-                "Buildup Ceylon",
-                style: TextStyle(
-                  fontSize: 35,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.yellow.shade600, // Yellow font color
-                  letterSpacing: 1.5,
+          // Buildsphere Text (Hides when keyboard is open)
+          if (!isKeyboardOpen)
+            Positioned(
+              top: 70,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  "Buildsphere",
+                  style: TextStyle(
+                    fontSize: 35,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.yellow.shade600,
+                    letterSpacing: 1.5,
+                  ),
                 ),
               ),
             ),
-          ),
 
           // Login Form
           Center(
@@ -172,9 +175,9 @@ class _LoginPageState extends State<LoginPage> {
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    border: Border.all(color: Colors.white.withOpacity(0.6)),
                   ),
                   child: Column(
                     children: [
@@ -234,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             onPressed: () {
                               setState(() {
-                                _obscurePassword = !_obscurePassword; // Toggle password visibility
+                                _obscurePassword = !_obscurePassword;
                               });
                             },
                           ),
