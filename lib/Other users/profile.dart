@@ -23,6 +23,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _userRole = ""; // Store user role
   String? _localImagePath;
   String? _downloadURL; // 🔹 Ensure this is declared in the class
+  String? _selectedDistrict;
+  String? _selectedCity;
 
   @override
   void initState() {
@@ -109,6 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _nameController.text = userDoc['name'];
           _emailController.text = userDoc['email'];
           _userRole = userDoc['role'];
+          _selectedDistrict = userDoc['district'];
+          _selectedCity = userDoc['city'];
           _localImagePath = userDoc['localProfileImage'] ?? null;
           _downloadURL = userDoc['profileImage'] ?? null;
         });
@@ -181,6 +185,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await FirebaseFirestore.instance.collection('users').doc(_userId).update({
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
+        'district': _selectedDistrict,
+        'city': _selectedCity,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -202,6 +208,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
           (route) => false,
     );
   }
+  final List<String> districts = [
+    'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+    'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya',
+    'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee', 'Kurunegala', 'Puttalam',
+    'Anuradhapura', 'Polonnaruwa', 'Badulla', 'Monaragala', 'Ratnapura', 'Kegalle'
+  ];
+  final Map<String, List<String>> cities = {
+    'Colombo': ['Colombo 1', 'Colombo 2', 'Colombo 3', 'Nugegoda', 'Dehiwala', 'Maharagama', 'Piliyandala', 'Homagama', 'Kottawa', 'Battaramulla', 'Koswatta'],
+    'Gampaha': ['Negombo', 'Gampaha', 'Ja-Ela', 'Wattala', 'Minuwangoda', 'Kelaniya', 'Ragama', 'Mirigama', 'Katunayake', 'Ganemulla'],
+    'Kalutara': ['Kalutara', 'Panadura', 'Horana', 'Beruwala', 'Matugama', 'Aluthgama', 'Wadduwa', 'Ingiriya', 'Payagala', 'Bandaragama'],
+    'Kandy': ['Kandy', 'Peradeniya', 'Katugastota', 'Gampola', 'Nawalapitiya', 'Wattegama', 'Digana', 'Pilimathalawa', 'Teldeniya', 'Kadugannawa'],
+    'Matale': ['Matale', 'Dambulla', 'Galewela', 'Rattota', 'Ukuwela', 'Palapathwala', 'Laggala', 'Nalanda'],
+    'Nuwara Eliya': ['Nuwara Eliya', 'Hatton', 'Ginigathhena', 'Kotagala', 'Talawakelle', 'Ragala', 'Pundaluoya', 'Dayagama'],
+    'Galle': ['Galle', 'Hikkaduwa', 'Unawatuna', 'Ambalangoda', 'Karapitiya', 'Weligama', 'Ahangama', 'Bentota', 'Koggala', 'Balapitiya'],
+    'Matara': ['Matara', 'Weligama', 'Akurassa', 'Deniyaya', 'Hakmana', 'Dikwella', 'Kamburugamuwa', 'Devinuwara', 'Weeraketiya'],
+    'Hambantota': ['Hambantota', 'Tangalle', 'Beliatta', 'Tissamaharama', 'Sooriyawewa', 'Weerawila', 'Lunugamvehera', 'Kirinda'],
+    'Jaffna': ['Jaffna', 'Nallur', 'Point Pedro', 'Chavakachcheri', 'Kopay', 'Atchuvely', 'Karainagar', 'Kankesanthurai', 'Velanai'],
+    'Kilinochchi': ['Kilinochchi', 'Pallai', 'Paranthan', 'Mallavi', 'Tharmapuram', 'Kandavalai'],
+    'Mannar': ['Mannar', 'Murunkan', 'Pesalai', 'Thalaimannar', 'Madhu'],
+    'Vavuniya': ['Vavuniya', 'Nedunkeni', 'Omanthai', 'Cheddikulam', 'Parayanalankulam'],
+    'Mullaitivu': ['Mullaitivu', 'Puthukudiyiruppu', 'Oddusuddan', 'Maritimepattu', 'Thunukkai'],
+    'Batticaloa': ['Batticaloa', 'Kaluwanchikudy', 'Eravur', 'Valachchenai', 'Kattankudy', 'Chenkalady', 'Vakarai'],
+    'Ampara': ['Ampara', 'Kalmunai', 'Sainthamaruthu', 'Akkaraipattu', 'Sammanthurai', 'Dehiattakandiya', 'Uhana'],
+    'Trincomalee': ['Trincomalee', 'Kinniya', 'Mutur', 'Nilaveli', 'Kantale', 'China Bay'],
+    'Kurunegala': ['Kurunegala', 'Kuliyapitiya', 'Pannala', 'Mawathagama', 'Narammala', 'Alawwa', 'Polgahawela', 'Wariyapola', 'Nikaweratiya', 'Galgamuwa'],
+    'Puttalam': ['Puttalam', 'Chilaw', 'Wennappuwa', 'Nattandiya', 'Marawila', 'Anamaduwa', 'Madampe'],
+    'Anuradhapura': ['Anuradhapura', 'Kekirawa', 'Mihintale', 'Thambuttegama', 'Eppawala', 'Nochchiyagama'],
+    'Polonnaruwa': ['Polonnaruwa', 'Hingurakgoda', 'Medirigiriya', 'Dimbulagala'],
+    'Badulla': ['Badulla', 'Bandarawela', 'Haputale', 'Welimada', 'Mahiyanganaya', 'Diyatalawa', 'Passara'],
+    'Monaragala': ['Monaragala', 'Wellawaya', 'Bibile', 'Medagama', 'Siyambalanduwa'],
+    'Ratnapura': ['Ratnapura', 'Embilipitiya', 'Pelmadulla', 'Balangoda', 'Eheliyagoda', 'Kuruwita', 'Opanayaka'],
+    'Kegalle': ['Kegalle', 'Mawanella', 'Warakapola', 'Ruwanwella', 'Dehiowita', 'Deraniyagala'],
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +316,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
 
+              // ✅ District Dropdown
+              _buildDropdown(
+                hint: "Select District",
+                value: _selectedDistrict,
+                items: districts,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedDistrict = value;
+                    _selectedCity = null; // Reset city
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
+
+              // ✅ City Dropdown (only if district is selected)
+              if (_selectedDistrict != null)
+                _buildDropdown(
+                  hint: "Select City",
+                  value: _selectedCity,
+                  items: cities[_selectedDistrict!] ?? [],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCity = value;
+                    });
+                  },
+                ),
+              const SizedBox(height: 20),
+
               ElevatedButton(
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -300,6 +367,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: const Icon(Icons.logout, color: Colors.white),
                 label: const Text('Logout', style: TextStyle(color: Colors.white)),
               ),
+
             ],
           ),
         ),
@@ -307,3 +375,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+Widget _buildDropdown({
+  required String hint,
+  required String? value,
+  required List<String> items,
+  required void Function(String?) onChanged,
+}) {
+  return DropdownButtonFormField<String>(
+    value: value,
+    hint: Text(hint),
+    isExpanded: true,
+    items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+    onChanged: onChanged,
+    decoration: const InputDecoration(
+      border: OutlineInputBorder(),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    ),
+  );
+}
+
