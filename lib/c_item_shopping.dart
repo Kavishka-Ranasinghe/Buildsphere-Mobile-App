@@ -113,6 +113,7 @@ class ItemShoppingScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white, // Solid White Background
                         borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.green, width: 5),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

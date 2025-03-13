@@ -99,14 +99,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      setState(() {
-        _userId = user.uid; // ✅ Ensure _userId is properly assigned
-      });
+      _userId = user.uid;
 
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
-          .get();
+          .get(); // ✅ Fetch fresh data
 
       if (userDoc.exists) {
         setState(() {
@@ -115,12 +113,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _userRole = userDoc['role'];
           _selectedDistrict = userDoc['district'];
           _selectedCity = userDoc['city'];
+          _localImagePath = userDoc['localProfileImage'] ?? null;
+          _downloadURL = userDoc['profileImage'] ?? null;
         });
       }
     }
   }
-
-
 
   // Function to pick an image and save it locally
   Future<void> _pickImage() async {

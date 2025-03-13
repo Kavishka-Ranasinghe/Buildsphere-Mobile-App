@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'Other users/profile.dart';
 import 'app_drawer.dart';
@@ -16,6 +18,29 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
   String? selectedDistrict;
   String? selectedCity;
   String? selectedFilter = "All"; // Default to "All"
+  // Fetch user details
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserDistrictCity();
+  }
+
+  Future<void> _fetchUserDistrictCity() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (userDoc.exists) {
+        setState(() {
+          selectedDistrict = userDoc['district'] ?? null;
+          selectedCity = userDoc['city'] ?? null;
+        });
+      }
+    }
+  }
 
   // Placeholder data
   final List<String> districts = [
@@ -224,13 +249,23 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
       ),
     );
   }
-
-  Widget _buildDropdown({
+  Widget _buildDropdown({required String hint, required String? value, required List<String> items, required void Function(String?) onChanged}) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      hint: Text(hint),
+      isExpanded: true,
+      items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+      onChanged: onChanged,
+      decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+    );
+  }
+}
+  Future<Widget> _buildDropdown({
     required String hint,
     required String? value,
     required List<String> items,
     required void Function(String?) onChanged,
-  }) {
+  }) async {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -289,4 +324,4 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
       ),
     );
   }
-}
+
