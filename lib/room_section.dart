@@ -22,18 +22,24 @@ class room_section extends StatelessWidget {
         backgroundColor: Colors.green,
       ),
       drawer: const AppDrawer(),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            color: Colors.green,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/modern.png', // Ensure this image is in your assets folder
+              fit: BoxFit.cover,
+            ),
+          ),
+          Column(
+            children: [
+              Container(
+                color: Colors.green.withOpacity(0.9),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
                         'Room Section',
                         style: TextStyle(
                           fontSize: 24,
@@ -41,54 +47,81 @@ class room_section extends StatelessWidget {
                           color: Colors.yellowAccent,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                        );
+                      },
+                      child: const CircleAvatar(
+                        backgroundImage: AssetImage('assets/images/profile.gif'),
+                        radius: 24,
+                      ),
+                    ),
+                  ],
                 ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                    );
-                  },
-                  child: const CircleAvatar(
-                    backgroundImage: AssetImage('assets/images/profile.gif'),
-                    radius: 24,
-                  ),
+              ),
+              Expanded(
+                child: GridView.count(
+                  padding: const EdgeInsets.all(16),
+                  crossAxisCount: 1,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  children: [
+                    _buildSmallerCard(
+                      icon: Icons.group_add,
+                      label: 'Join Room',
+                      color: Colors.blue,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const JoinRoom()),
+                        );
+                      },
+                    ),
+                    _buildSmallerCard(
+                      icon: Icons.add,
+                      label: 'Create Room',
+                      color: Colors.blue,
+                      onTap: () {
+                        // Define navigation to Create Room page here
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: GridView.count(
-              padding: const EdgeInsets.all(16),
-              crossAxisCount: 1,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                DashboardItem(
-                  icon: Icons.group_add,
-                  label: 'Join Room',
-                  color: Colors.blue,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const JoinRoom()),
-                    );
-                  },
-                ),
-                DashboardItem(
-                  icon: Icons.add,
-                  label: 'Create Room',
-                  color: Colors.blue,
-                  onTap: () {
-                    // Define navigation to Create Room page here
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSmallerCard({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        color: Colors.white.withOpacity(0.75), // Slightly faded effect
+        elevation: 4, // Softer shadow
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SizedBox(
+          height: 60, // Reduced height for a more compact look
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 40, color: color), // Slightly smaller icon
+              const SizedBox(height: 5),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,4 @@
-//this page is for customer item shopping
-// when customer type in search bar or scan item it takes the word and redirect to daraz.lk with relevent search word.
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'Other users/profile.dart';
@@ -10,6 +9,17 @@ class ItemShoppingScreen extends StatelessWidget {
 
   // Function to search for an item
   void _searchItem(String query, BuildContext context) async {
+    if (query.isEmpty) {
+      // Show error if search field is empty
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter an item to search."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final darazAppUrl = 'daraz://search?q=${Uri.encodeComponent(query)}'; // Daraz app deep link
     final darazWebUrl =
         'https://www.daraz.lk/catalog/?spm=a2a0e.tm80335410.search.d_go&q=${Uri.encodeComponent(query)}';
@@ -18,7 +28,7 @@ class ItemShoppingScreen extends StatelessWidget {
       // If the Daraz app is installed, open the app
       await launchUrl(Uri.parse(darazAppUrl));
     } else {
-      // If the Daraz app is not installed, open in a web browser (Chrome)
+      // If the Daraz app is not installed, open in a web browser
       await launchUrl(
         Uri.parse(darazWebUrl),
         mode: LaunchMode.externalApplication, // Ensures opening in a web browser
@@ -43,18 +53,33 @@ class ItemShoppingScreen extends StatelessWidget {
         backgroundColor: Colors.green,
       ),
       drawer: const AppDrawer(),
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            color: Colors.green,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+          // Background Image with Blur Effect
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/modern.png', // Ensure this image is in your assets folder
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), // Adds blur effect
+              child: Container(
+                color: Colors.black.withOpacity(0.2), // Slight dark overlay
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              // Header with Profile Icon
+              Container(
+                color: Colors.green,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
                         'Item Shopping',
                         style: TextStyle(
                           fontSize: 24,
@@ -62,97 +87,114 @@ class ItemShoppingScreen extends StatelessWidget {
                           color: Colors.yellowAccent,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                    );
-                  },
-                  child: const CircleAvatar(
-                    backgroundImage: AssetImage('assets/images/profile.gif'),
-                    radius: 24,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    labelText: 'Search for an item',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
                     ),
-                  ),
-                  onSubmitted: (query) => _searchItem(query, context),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.search),
-                        label: const Text("Search"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.yellowAccent,
-                        ),
-                        onPressed: () => _searchItem(searchController.text, context),
-                      ),
-                    ),
-                    const SizedBox(width: 50),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text("Scan Item"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.yellowAccent,
-                      ),
-                      onPressed: () {
-                        // Placeholder for Google Vision API functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Opening camera to scan item...")),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
                         );
                       },
+                      child: const CircleAvatar(
+                        backgroundImage: AssetImage('assets/images/profile.gif'),
+                        radius: 24,
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: 10, // Placeholder for search results
-              itemBuilder: (context, index) {
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    child: const Text(
-                      'I',
-                      style: TextStyle(color: Colors.white),
+              ),
+              // Centering the Search and Buttons
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white, // Solid White Background
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Search Bar
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TextField(
+                              controller: searchController,
+                              decoration: const InputDecoration(
+                                labelText: 'Search for an item',
+                                prefixIcon: Icon(Icons.search, color: Colors.black54),
+                                border: InputBorder.none, // Remove default border
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                              ),
+                              style: const TextStyle(color: Colors.black),
+                              onSubmitted: (query) => _searchItem(query, context),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Buttons with Filled White Background
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildFilledButton(
+                                icon: Icons.search,
+                                label: "Search",
+                                onPressed: () {
+                                  _searchItem(searchController.text, context);
+                                },
+                              ),
+                              const SizedBox(width: 20),
+                              _buildFilledButton(
+                                icon: Icons.camera_alt,
+                                label: "Scan Item",
+                                onPressed: () {
+                                  // Placeholder for Google Vision API functionality
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Opening camera to scan item...")),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  title: Text('Item $index'),
-                  subtitle: const Text('Description of the item...'),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Opening details for Item $index")),
-                    );
-                  },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilledButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black, // Button background color
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: ElevatedButton.icon(
+          icon: Icon(icon, color: Colors.black),
+          label: Text(label, style: const TextStyle(color: Colors.black)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white, // White background for button
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            elevation: 2,
+          ),
+          onPressed: onPressed,
+        ),
       ),
     );
   }

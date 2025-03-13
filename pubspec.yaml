@@ -78,6 +78,8 @@ flutter:
       - assets/images/profile.gif
       - assets/images/c.jpg
       - assets/images/h_shop.jpg
+      - assets/images/modern.png
+      - assets/images/MH.jpg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
