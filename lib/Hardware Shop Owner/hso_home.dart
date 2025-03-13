@@ -16,11 +16,40 @@ class HardwareShopOwnerPage extends StatefulWidget {
 class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
   String selectedCategory = 'All';
 
+  // Shop name will be dynamically loaded from Firestore.
+  String _shopName = "Loading...";
+
   final List<String> categories = ['All', 'Cement', 'Soil', 'Brick', 'Pebbles'];
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+    _fetchShopName();
+  }
+
+  // Fetch the shop name from Firestore using the current user's UID.
+  void _fetchShopName() async {
     User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      if (userDoc.exists) {
+        setState(() {
+          _shopName = userDoc['shopName'] ?? "Unknown Shop";
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Filter products based on selected category.
+    List<Map<String, dynamic>> filteredMaterials = rawMaterials.where((material) {
+      if (selectedCategory == 'All') return true;
+      return material['category']?.toString().toLowerCase() == selectedCategory.toLowerCase();
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -37,65 +66,50 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          // Fetch and Display Shop Name Dynamically
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .doc(currentUser?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              String shopName = "Loading...";
-
-              if (snapshot.hasData && snapshot.data?.exists == true) {
-                shopName = snapshot.data?['shopName'] ?? "Unknown Shop";
-              }
-
-              return Container(
-                color: Colors.green,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            shopName,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.yellowAccent,
-                            ),
-                          ),
-                          const Text(
-                            'Products',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+          Container(
+            color: Colors.green,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Display the shop name fetched from the database.
+                      Text(
+                        _shopName,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.yellowAccent,
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                        );
-                      },
-                      child: const CircleAvatar(
-                        backgroundImage: AssetImage('assets/images/profile.gif'),
-                        radius: 24,
+                      const Text(
+                        'Products',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              );
-            },
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    );
+                  },
+                  child: const CircleAvatar(
+                    backgroundImage: AssetImage('assets/images/profile.gif'),
+                    radius: 24,
+                  ),
+                ),
+              ],
+            ),
           ),
-
           // Category Selector
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -130,23 +144,46 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
               ),
             ),
           ),
-
           // Products List
           Expanded(
-            child: ListView.builder(
+            child: filteredMaterials.isEmpty
+                ? const Center(
+              child: Text(
+                'No products available in this category',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: rawMaterials.length,
+              itemCount: filteredMaterials.length,
               itemBuilder: (context, index) {
-                final material = rawMaterials[index];
-                return Card(
-                  elevation: 3,
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  child: ListTile(
-                    title: Text(
-                      material['name'] ?? 'Unknown Product',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                final material = filteredMaterials[index];
+                return GestureDetector(
+                  onTap: () async {
+                    final updatedMaterial = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProductPage(material: material),
+                      ),
+                    );
+                    if (updatedMaterial != null) {
+                      setState(() {
+                        material['name'] = updatedMaterial['name'] ?? 'Unknown Product';
+                        material['price'] = updatedMaterial['price'] ?? '0';
+                        material['category'] = updatedMaterial['category'] ?? 'Uncategorized';
+                      });
+                    }
+                  },
+                  child: Card(
+                    elevation: 3,
+                    margin: const EdgeInsets.symmetric(vertical: 10),
+                    child: ListTile(
+                      title: Text(
+                        material['name'] ?? 'Unknown Product',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text('Price: ${material['price'] ?? '0'} LKR'),
                     ),
-                    subtitle: Text('Price: ${material['price'] ?? '0'} LKR'),
                   ),
                 );
               },
