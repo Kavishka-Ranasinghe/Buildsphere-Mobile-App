@@ -5,6 +5,7 @@ import 'chat_room.dart';
 import 'room_section.dart';
 import 'c_item_shopping.dart';
 import 'c_raw_supply_shopping.dart';
+import 'about_page.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -15,6 +16,7 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   String? userRole;
+  int _tapCount = 0;
 
   @override
   void initState() {
@@ -24,7 +26,6 @@ class _AppDrawerState extends State<AppDrawer> {
 
   Future<void> _fetchUserRole() async {
     User? user = FirebaseAuth.instance.currentUser;
-
     if (user != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
@@ -35,22 +36,54 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
+  void _incrementTapCount() {
+    setState(() {
+      _tapCount++;
+      if (_tapCount >= 7) {
+        _tapCount = 0;
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AboutPage()),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(
+          DrawerHeader(
+            decoration: const BoxDecoration(
               color: Colors.green,
             ),
-            child: Text(
-              'Menu',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: _incrementTapCount,
+                  child: const Text(
+                    'BuildSphere',
+                    style: TextStyle(
+                      color: Colors.yellowAccent,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  'Main Menu', // ✅ Added "Main Menu" Subheading
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
           ListTile(
@@ -81,7 +114,6 @@ class _AppDrawerState extends State<AppDrawer> {
               );
             },
           ),
-          // Only show "Buy Items" and "Buy Raw Supplies" for Clients
           if (userRole == 'Client') ...[
             ListTile(
               leading: const Icon(Icons.shopping_cart),
