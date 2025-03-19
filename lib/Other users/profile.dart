@@ -5,7 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../login.dart'; // Import the Login Page
+import 'package:image/image.dart' as img;
+import 'dart:typed_data';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -94,33 +98,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+  // Function to delete profile image
+  Future<void> _deleteProfileImage() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User is not logged in!")),
+        );
+        return;
+      }
+
+      String userId = user.uid;
+
+      if (_downloadURL != null) {
+        Reference ref = FirebaseStorage.instance.refFromURL(_downloadURL!);
+        await ref.delete(); // ✅ Deletes the image from Firebase Storage
+      }
+
+      // ✅ Remove image reference from Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'profileImage': FieldValue.delete(),
+      });
+
+      setState(() {
+        _downloadURL = null;
+        _profileImage = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile picture removed successfully!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to delete profile image: $e")),
+      );
+    }
+  }
+
+
 
   // Function to load user data from Firestore
   Future<void> _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
-        _userId = user.uid; // ✅ Ensure _userId is properly assigned
+        _userId = user.uid;
       });
 
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_userId)
-          .get();
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId)
+            .get();
 
-      if (userDoc.exists) {
-        setState(() {
-          _nameController.text = userDoc['name'];
-          _emailController.text = userDoc['email'];
-          _userRole = userDoc['role'];
-          _selectedDistrict = userDoc['district'];
-          _selectedCity = userDoc['city'];
-          _downloadURL = userDoc['profileImage']; // ✅ Fetch and store image URL
-        });
+        if (userDoc.exists) {
+          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+
+          setState(() {
+            _nameController.text = userData['name'] ?? "";
+            _emailController.text = userData['email'] ?? "";
+            _userRole = userData['role'] ?? "Not Set";
+            _selectedDistrict = userData['district'] ?? "";
+            _selectedCity = userData['city'] ?? "";
+            _downloadURL = userData['profileImage'] ?? null;
+          });
+
+          // ✅ Preload Image to Reduce Delay
+          if (_downloadURL != null) {
+            precacheImage(NetworkImage(_downloadURL!), context);
+          }
+        }
+      } catch (e) {
+        print("Error loading user data: $e");
       }
     }
   }
-  
+
+
+
 
 
 
@@ -157,17 +213,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       String userId = user.uid;
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString(); // Unique file name
-      String filePath = 'profile_images/$userId/$fileName.jpg'; // ✅ Matches Firebase rules
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      String filePath = 'profile_images/$userId/$fileName.jpg';
+
+      // ✅ Compress Image Before Uploading
+      List<int> imageBytes = await imageFile.readAsBytes();
+      img.Image? decodedImage = img.decodeImage(Uint8List.fromList(imageBytes));
+      List<int> compressedBytes = img.encodeJpg(decodedImage!, quality: 75); // Reduce quality to 75%
 
       Reference ref = FirebaseStorage.instance.ref(filePath);
-      UploadTask uploadTask = ref.putFile(imageFile);
+      UploadTask uploadTask = ref.putData(Uint8List.fromList(compressedBytes));
+
       TaskSnapshot snapshot = await uploadTask;
 
       if (snapshot.state == TaskState.success) {
         String imageURL = await ref.getDownloadURL();
         await FirebaseFirestore.instance.collection('users').doc(userId).update({
-          'profileImage': imageURL, // ✅ Ensure this field is saved in Firestore
+          'profileImage': imageURL,
         });
 
         setState(() {
@@ -303,17 +365,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 20),
 
+
                       Center(
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!) // ✅ Show selected image immediately
-                                : _downloadURL != null
-                                ? NetworkImage(_downloadURL!) // ✅ Load image from Firestore
-                                : const AssetImage('assets/images/profile.gif') as ImageProvider, // ✅ Default image
-                          ),
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: CircleAvatar(
+                                radius: 50,
+                                backgroundImage: _profileImage != null
+                                    ? FileImage(_profileImage!)
+                                    : _downloadURL != null
+                                    ? CachedNetworkImageProvider(_downloadURL!)
+                                    : const AssetImage('assets/images/profile.gif') as ImageProvider,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            if (_downloadURL != null || _profileImage != null) // Only show if an image exists
+                              TextButton(
+                                onPressed: _deleteProfileImage,
+                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                child: const Text("Remove Profile Picture"),
+                              ),
+                          ],
                         ),
                       ),
 
