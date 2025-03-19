@@ -9,6 +9,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../login.dart'; // Import the Login Page
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
+import 'package:http/http.dart' as http;
+
 
 
 class ProfileScreen extends StatefulWidget {
@@ -110,16 +112,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       String userId = user.uid;
+      String filePath = 'profile_images/$userId/profile.jpg';
 
-      if (_downloadURL != null) {
-        Reference ref = FirebaseStorage.instance.refFromURL(_downloadURL!);
-        await ref.delete(); // ✅ Deletes the image from Firebase Storage
-      }
-
-      // ✅ Remove image reference from Firestore
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'profileImage': FieldValue.delete(),
-      });
+      // ✅ Remove image reference from Firestore & Storage together
+      await Future.wait([
+        FirebaseStorage.instance.ref(filePath).delete(),
+        FirebaseFirestore.instance.collection('users').doc(userId).update({
+          'profileImage': FieldValue.delete(),
+        }),
+      ]);
 
       setState(() {
         _downloadURL = null;
@@ -138,6 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
 
+
   // Function to load user data from Firestore
   Future<void> _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -146,34 +148,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _userId = user.uid;
       });
 
-      try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_userId)
-            .get();
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .get();
 
-        if (userDoc.exists) {
-          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      if (userDoc.exists) {
+        setState(() {
+          _nameController.text = userDoc['name'];
+          _emailController.text = userDoc['email'];
+          _userRole = userDoc['role'];
+          _selectedDistrict = userDoc['district'];
+          _selectedCity = userDoc['city'];
+          _downloadURL = userDoc['profileImage'];
 
-          setState(() {
-            _nameController.text = userData['name'] ?? "";
-            _emailController.text = userData['email'] ?? "";
-            _userRole = userData['role'] ?? "Not Set";
-            _selectedDistrict = userData['district'] ?? "";
-            _selectedCity = userData['city'] ?? "";
-            _downloadURL = userData['profileImage'] ?? null;
-          });
-
-          // ✅ Preload Image to Reduce Delay
-          if (_downloadURL != null) {
-            precacheImage(NetworkImage(_downloadURL!), context);
-          }
-        }
-      } catch (e) {
-        print("Error loading user data: $e");
+          // ✅ Save Image Locally
+          _cacheProfileImage(_downloadURL!);
+        });
       }
     }
   }
+
+
+  // ✅ Save Image Locally
+  Future<void> _cacheProfileImage(String imageUrl) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final localPath = '${directory.path}/profile_$_userId.jpg';
+
+    try {
+      final response = await http.get(Uri.parse(imageUrl));  // ✅ Use `http.get()`
+      if (response.statusCode == 200) {
+        File file = File(localPath);
+        await file.writeAsBytes(response.bodyBytes);
+        setState(() {
+          _localImagePath = localPath;
+        });
+      }
+    } catch (e) {
+      print("Failed to cache image: $e");
+    }
+  }
+
+
+
 
 
 
@@ -213,19 +230,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       String userId = user.uid;
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      String filePath = 'profile_images/$userId/$fileName.jpg';
+      String fileName = "profile.jpg"; // Keeping it constant to replace old image
+      String filePath = 'profile_images/$userId/$fileName';
 
-      // ✅ Compress Image Before Uploading
+      // ✅ Resize Image Before Uploading (Reduce File Size)
       List<int> imageBytes = await imageFile.readAsBytes();
       img.Image? decodedImage = img.decodeImage(Uint8List.fromList(imageBytes));
-      List<int> compressedBytes = img.encodeJpg(decodedImage!, quality: 75); // Reduce quality to 75%
 
+      if (decodedImage != null) {
+        img.Image resizedImage = img.copyResize(decodedImage, width: 300); // Resizing to 300px
+        imageBytes = img.encodeJpg(resizedImage, quality: 80); // Compressing
+      }
+
+      // ✅ Use putData() instead of putFile()
       Reference ref = FirebaseStorage.instance.ref(filePath);
-      UploadTask uploadTask = ref.putData(Uint8List.fromList(compressedBytes));
+      UploadTask uploadTask = ref.putData(Uint8List.fromList(imageBytes)); // Faster Upload
 
       TaskSnapshot snapshot = await uploadTask;
-
       if (snapshot.state == TaskState.success) {
         String imageURL = await ref.getDownloadURL();
         await FirebaseFirestore.instance.collection('users').doc(userId).update({
