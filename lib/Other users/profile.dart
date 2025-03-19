@@ -115,10 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _userRole = userDoc['role'];
           _selectedDistrict = userDoc['district'];
           _selectedCity = userDoc['city'];
+          _downloadURL = userDoc['profileImage']; // ✅ Fetch and store image URL
         });
       }
     }
   }
+  
 
 
 
@@ -146,25 +148,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Upload profile image to Firebase Storage
   Future<void> _uploadProfileImage(File imageFile) async {
     try {
-      String filePath = 'profile_pictures/$_userId.jpg';
-      Reference ref = FirebaseStorage.instance.ref(filePath);
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User is not logged in! Please sign in again.")),
+        );
+        return;
+      }
 
+      String userId = user.uid;
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString(); // Unique file name
+      String filePath = 'profile_images/$userId/$fileName.jpg'; // ✅ Matches Firebase rules
+
+      Reference ref = FirebaseStorage.instance.ref(filePath);
       UploadTask uploadTask = ref.putFile(imageFile);
       TaskSnapshot snapshot = await uploadTask;
 
       if (snapshot.state == TaskState.success) {
-        // ✅ Fetch Download URL after successful upload
         String imageURL = await ref.getDownloadURL();
-
-        setState(() {
-          _localImagePath = imageFile.path;
-          _downloadURL = imageURL;
+        await FirebaseFirestore.instance.collection('users').doc(userId).update({
+          'profileImage': imageURL, // ✅ Ensure this field is saved in Firestore
         });
 
-        // ✅ Save URL to Firestore
-        await FirebaseFirestore.instance.collection('users').doc(_userId).update({
-          'localProfileImage': _localImagePath,
-          'profileImage': imageURL,
+        setState(() {
+          _downloadURL = imageURL;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -179,6 +186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
+
 
 
   // Function to save updated user data
@@ -299,14 +308,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: _pickImage,
                           child: CircleAvatar(
                             radius: 50,
-                            backgroundImage: _localImagePath != null
-                                ? FileImage(File(_localImagePath!)) // ✅ Use Local Image
+                            backgroundImage: _profileImage != null
+                                ? FileImage(_profileImage!) // ✅ Show selected image immediately
                                 : _downloadURL != null
-                                ? NetworkImage("$_downloadURL?t=${DateTime.now().millisecondsSinceEpoch}")
-                                : const AssetImage('assets/images/profile.gif') as ImageProvider,
+                                ? NetworkImage(_downloadURL!) // ✅ Load image from Firestore
+                                : const AssetImage('assets/images/profile.gif') as ImageProvider, // ✅ Default image
                           ),
                         ),
                       ),
+
 
                       const SizedBox(height: 10),
                       if (_downloadURL == null && _localImagePath == null)
