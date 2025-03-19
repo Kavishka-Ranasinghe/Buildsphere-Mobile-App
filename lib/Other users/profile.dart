@@ -198,25 +198,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
   // Function to pick an image and save it locally
+  // Function to pick an image and update UI immediately
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
     if (pickedFile != null) {
       File newImage = File(pickedFile.path);
 
-      // ✅ Save image locally
-      final directory = await getApplicationDocumentsDirectory();
-      final localPath = '${directory.path}/profile_${_userId}.jpg';
-      final savedImage = await newImage.copy(localPath);
-
+      // ✅ Update UI immediately with selected image
       setState(() {
-        _profileImage = savedImage;
-        _localImagePath = localPath;
+        _profileImage = newImage;
       });
 
       // ✅ Upload image to Firebase Storage
-      await _uploadProfileImage(savedImage);
+      await _uploadProfileImage(newImage);
     }
   }
+
 
   // Upload profile image to Firebase Storage
   Future<void> _uploadProfileImage(File imageFile) async {
@@ -268,6 +266,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text("Failed to upload image: $e")),
       );
     }
+  }
+  void _showFullScreenImage(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(), // ✅ Tap to close
+            child: InteractiveViewer(
+              panEnabled: true, // ✅ Allow zooming
+              child: _profileImage != null
+                  ? Image.file(_profileImage!)
+                  : _downloadURL != null
+                  ? CachedNetworkImage(imageUrl: _downloadURL!)
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        );
+      },
+    );
   }
 
 
@@ -391,11 +410,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           children: [
                             GestureDetector(
-                              onTap: _pickImage,
+                              onTap: _pickImage, // ✅ Short tap to pick image
+                              onLongPress: () {  // ✅ Long press to view image full-screen
+                                if (_profileImage != null || _downloadURL != null) {
+                                  _showFullScreenImage(context);
+                                }
+                              },
                               child: CircleAvatar(
                                 radius: 50,
                                 backgroundImage: _profileImage != null
-                                    ? FileImage(_profileImage!)
+                                    ? FileImage(_profileImage!) // ✅ Show selected image
                                     : _downloadURL != null
                                     ? CachedNetworkImageProvider(_downloadURL!)
                                     : const AssetImage('assets/images/profile.gif') as ImageProvider,
@@ -403,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 10),
 
-                            if (_downloadURL != null || _profileImage != null) // Only show if an image exists
+                            if (_downloadURL != null || _profileImage != null) // ✅ Only show if an image exists
                               TextButton(
                                 onPressed: _deleteProfileImage,
                                 style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -412,6 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                       ),
+
 
 
                       const SizedBox(height: 10),
