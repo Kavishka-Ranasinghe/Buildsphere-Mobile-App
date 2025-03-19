@@ -30,7 +30,11 @@ class _AddProductPageState extends State<AddProductPage> {
 
   // Function to save the product
   void _saveProduct() {
-    if (_image == null || selectedCategory == null || nameController.text.isEmpty || priceController.text.isEmpty || descriptionController.text.isEmpty) {
+    if (_image == null ||
+        selectedCategory == null ||
+        nameController.text.isEmpty ||
+        priceController.text.isEmpty ||
+        descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields and upload an image.")),
       );
@@ -52,107 +56,144 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true, // Makes app bar float over background
       appBar: AppBar(
         title: const Text('Add Product'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green.withOpacity(0.8),
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Upload Section
-              GestureDetector(
-                onTap: _pickImage,
-                child: Center(
-                  child: _image != null
-                      ? Image.file(_image!, height: 150, width: 150, fit: BoxFit.cover)
-                      : Container(
-                    height: 150,
-                    width: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.camera_alt, size: 50, color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Center(
-                child: Text(
-                  'Tap to upload a product image',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Category Selector
-              const Text("Select Category"),
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                ),
-                items: ['Cement', 'Soil', 'Brick', 'Pebbles']
-                    .map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedCategory = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 10),
-
-              // Product Name Input
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Product Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Price Input
-              TextField(
-                controller: priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Price (LKR)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Product Description Input
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Product Description',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Save Product Button
-              Center(
-                child: ElevatedButton(
-                  onPressed: _saveProduct,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Add Product'),
-                ),
-              ),
-            ],
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/modern.png', // Replace with your background image
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3), // Semi-transparent overlay for readability
+            ),
+          ),
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 80), // Space for floating app bar
+
+                  // Modern Card Container
+                  Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 5,
+                    color: Colors.white.withOpacity(0.85),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Image Upload Section
+                          Center(
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: GestureDetector(
+                                onTap: _pickImage,
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.grey[300],
+                                  backgroundImage: _image != null ? FileImage(_image!) : null,
+                                  child: _image == null
+                                      ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey)
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Center(
+                            child: Text(
+                              'Tap to upload a product image',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Category Selector
+                          const Text("Select Category", style: TextStyle(fontWeight: FontWeight.bold)),
+                          DropdownButtonFormField<String>(
+                            value: selectedCategory,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
+                            items: ['Cement', 'Soil', 'Brick', 'Pebbles']
+                                .map((category) => DropdownMenuItem(
+                              value: category,
+                              child: Text(category),
+                            ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedCategory = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Product Name Input
+                          TextField(
+                            controller: nameController,
+                            decoration: InputDecoration(
+                              labelText: 'Product Name',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Price Input
+                          TextField(
+                            controller: priceController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Price (LKR)',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Product Description Input
+                          TextField(
+                            controller: descriptionController,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              labelText: 'Product Description',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Save Product Button
+                          Center(
+                            child: ElevatedButton(
+                              onPressed: _saveProduct,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                              ),
+                              child: const Text('Add Product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

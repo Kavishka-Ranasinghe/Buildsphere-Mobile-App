@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_room.dart';
 import 'room_section.dart';
-import 'c_item_shopping.dart';
+import 'Other users/c_item_shopping.dart';
 import 'c_raw_supply_shopping.dart';
 import 'about_page.dart';
 

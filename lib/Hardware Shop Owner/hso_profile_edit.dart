@@ -31,7 +31,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchUserProfile();
   }
 
-  // Fetch shop details from Firestore
   Future<void> _fetchUserProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -45,11 +44,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _emailController.text = userDoc['email'] ?? '';
         _phoneController.text = userDoc['phone'] ?? '';
         _addressController.text = userDoc['address'] ?? '';
+        _mapLinkController.text = userDoc['mapLink'] ?? '';
       });
     }
   }
 
-  // Update shop details in Firestore
   Future<void> _updateProfile() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -58,15 +57,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'email': _emailController.text.trim(),
           'phone': _phoneController.text.trim(),
           'address': _addressController.text.trim(),
+          'mapLink': _mapLinkController.text.trim(),
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile updated successfully")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile updated successfully")),
+          );
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error updating profile: $e")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error updating profile: $e")),
+          );
+        }
       }
     }
   }
@@ -136,13 +140,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             (route) => false,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account deleted successfully")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Account deleted successfully")),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting account: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error deleting account: $e")),
+        );
+      }
     }
   }
 
@@ -164,105 +172,122 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Profile'),
         backgroundColor: Colors.green,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Update Profile',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: _profileImage != null
-                          ? FileImage(_profileImage!)
-                          : const AssetImage('assets/images/profile.gif') as ImageProvider,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Center(
-                  child: Text(
-                    'Tap to change profile picture',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Shop Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Shop Email',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Shop Tel Number',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(
-                    labelText: 'Shop Address',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _mapLinkController,
-                  decoration: const InputDecoration(
-                    labelText: 'Google Maps Link',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.url,
-                  validator: _validateMapLink,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _updateProfile,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                  child: const Text('Save Changes'),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => _deleteAccount(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                  icon: const Icon(Icons.delete_forever, color: Colors.white),
-                  label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => _logout(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text('Logout', style: TextStyle(color: Colors.white)),
-                ),
-              ],
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/modern.png', // ✅ Replace with your background image
+              fit: BoxFit.cover,
             ),
           ),
-        ),
+          // Overlay for readability
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+            ),
+          ),
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.75), // ✅ Slight transparency for form
+                  borderRadius: BorderRadius.circular(15), // ✅ Rounded borders
+                  border: Border.all(color: Colors.green, width: 2), // ✅ Added border
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Update Profile',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundImage: _profileImage != null
+                                ? FileImage(_profileImage!)
+                                : const AssetImage('assets/images/profile.gif') as ImageProvider,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Center(
+                        child: Text(
+                          'Tap to change profile picture',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Shop Name',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'Shop Email',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Shop Tel Number',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _mapLinkController,
+                        decoration: const InputDecoration(
+                          labelText: 'Google Maps Link',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.url,
+                        validator: _validateMapLink,
+                      ),
+                      // ✅ Buttons
+                      ElevatedButton(
+                        onPressed: _updateProfile,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        child: const Text('Save Changes'),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => _deleteAccount(context),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                        icon: const Icon(Icons.delete_forever, color: Colors.white),
+                        label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => _logout(context),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        label: const Text('Logout', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

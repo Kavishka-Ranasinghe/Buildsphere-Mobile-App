@@ -174,7 +174,7 @@ class _SignUpPageState extends State<SignUpPage> {
           // "Buildsphere" text
           if (!isKeyboardOpen)
           Positioned(
-            top:32,
+            top:30,
             left: 0,
             right: 0,
             child: Center(
@@ -196,7 +196,7 @@ class _SignUpPageState extends State<SignUpPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(15),

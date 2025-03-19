@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
-import 'splash_screen.dart';
-// Import your SignUpLoginPage here
 import 'package:firebase_core/firebase_core.dart';
-
+import 'splash_screen.dart'; // Your custom splash screen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp( const MyApp());
+  runApp(const MyApp());
 }
-
-
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -19,13 +14,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Buildsphere',
+      title: 'BuildSphere',
+      debugShowCheckedModeBanner: false, // Removed debug banner
       theme: ThemeData(
         primarySwatch: Colors.blue,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // Set the SplashScreen as the initial screen
+      home: const SplashScreen(), // Your custom splash screen
     );
   }
 }
