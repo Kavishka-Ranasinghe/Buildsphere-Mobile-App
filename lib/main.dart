@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'splash_screen.dart'; // Your custom splash screen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // CometChat Initialization
+  String appID = "272118efd8608bae";
+  String region = "in";
+
+  AppSettings appSettings = (AppSettingsBuilder()
+    ..subscriptionType = CometChatSubscriptionType.allUsers
+    ..region = region)
+      .build();
+
+  await CometChat.init(appID, appSettings, onSuccess: (String successMessage) {
+    print("CometChat initialized successfully: $successMessage");
+  }, onError: (CometChatException e) {
+    print("CometChat initialization failed: ${e.message}");
+  });
+
   runApp(const MyApp());
 }
 

@@ -37,6 +37,8 @@ dependencies:
   flutter_native_splash: ^2.0.5  # Version may vary
   shared_preferences: ^2.0.9  # Check for the latest version
   image_picker: ^0.8.7+3
+  cometchat_sdk: ^4.0.19
+  cometchat: ^3.0.13
   url_launcher: ^6.3.1  # Version as of now; check for latest version
   path_provider: ^2.1.5
   cached_network_image: ^3.2.3

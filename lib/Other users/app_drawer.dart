@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'chat_room.dart';
+import 'chat_rooms.dart';
 import 'room_section.dart';
 import 'Customer/c_item_shopping.dart';
 import 'Customer/c_raw_supply_shopping.dart';

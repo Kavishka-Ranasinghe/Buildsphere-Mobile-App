@@ -4,8 +4,10 @@ import 'Signup Pages/other_sign_up.dart'; // SignUpPage for navigation
 import 'Other users/room_section.dart'; // HomePage for normal users
 import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
 import 'Admin/admin_dash.dart'; // Admin Dashboard
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cometchat_sdk/cometchat_sdk.dart'as comet_chat;
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:cometchat_sdk/cometchat_sdk.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,6 +24,8 @@ class _LoginPageState extends State<LoginPage> {
   // Admin Credentials
   final String adminEmail = "Buildsphere@gmail.com";
   final String adminPassword = "password";
+
+
 
   void _login() async {
     String email = emailController.text.trim();
@@ -48,10 +52,10 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
+      firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      User? user = userCredential.user;
+      firebase_auth.User? user = userCredential.user;
 
       if (user != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -68,18 +72,20 @@ class _LoginPageState extends State<LoginPage> {
         if (userDoc.exists) {
           String userRole = userDoc['role'];
 
-          if (userRole == 'Client' ||
-              userRole == 'Engineer' ||
-              userRole == 'Planner') {
+          if (userRole == 'Client' || userRole == 'Engineer' || userRole == 'Planner') {
+            // ✅ Authenticate User with CometChat after Firebase Login
+            await cometChatLogin();
+
+            // ✅ Navigate to Room Section after successful login
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const room_section()),
             );
           } else if (userRole == 'Hardware Shop Owner') {
+            // ❌ Hardware Shop Owners do not belong to CometChat → Skip CometChat login
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                  builder: (context) => const HardwareShopOwnerPage()),
+              MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
             );
           } else {
             // Handle other roles if needed or show an error
@@ -93,12 +99,51 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       }
-    } on FirebaseAuthException catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Login failed")),
       );
     }
   }
+  Future<void> cometChatLogin() async {
+    String authKey = "406963557ec3469a8334514e054f7035ccee829b"; // Your CometChat Auth Key
+
+    // ✅ Get Firebase user details
+    firebase_auth.User? firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+
+    if (firebaseUser == null) {
+      print("❌ Firebase user is null!");
+      return;
+    }
+
+    String uid = firebaseUser.uid;
+    String name = firebaseUser.displayName ?? "Anonymous User";
+
+    // ✅ Create CometChat User (if not exists)
+    User user = User(
+      uid: uid,
+      name: name,
+    );
+
+    await CometChat.createUser(user, authKey,
+        onSuccess: (User createdUser) {
+          print("✅ CometChat user created successfully: ${createdUser.uid}");
+        },
+        onError: (CometChatException e) {
+          print("⚠️ CometChat user already exists or error: ${e.message}");
+        });
+
+    // ✅ Login User into CometChat
+    await CometChat.login(uid, authKey,
+        onSuccess: (User loggedInUser) {
+          print("✅ CometChat login successful: ${loggedInUser.uid}");
+        },
+        onError: (CometChatException e) {
+          print("❌ CometChat login failed: ${e.message}");
+        });
+  }
+
+
 
   // Forgot Password Function
   void _forgotPassword() async {
@@ -112,11 +157,11 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      await firebase_auth.FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Password reset link sent to your email")),
       );
-    } on FirebaseAuthException catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Failed to send reset email")),
       );

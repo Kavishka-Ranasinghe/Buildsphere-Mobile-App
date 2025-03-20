@@ -2,9 +2,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../login.dart'; // Import the LoginPage
 import 'hardware_shop_owner_signup.dart'; // Import the HardwareShopOwnerSignUpPage
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Other users/room_section.dart';
+import 'package:cometchat_sdk/cometchat_sdk.dart'as comet_chat;
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:cometchat_sdk/cometchat_sdk.dart';
+
 
 
 class SignUpPage extends StatefulWidget {
@@ -38,15 +41,15 @@ class _SignUpPageState extends State<SignUpPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Yeah!!! 🎉'),
-          content: const Text('Sign-up successful!,You will be redirected to home page.'),
+          content: const Text('Sign-up successful! You will be redirected to the home page.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const room_section()),
-                ); // Navigate to LoginPage
+                ); // Navigate to Chat Section
               },
               child: const Text('OK'),
             ),
@@ -55,6 +58,7 @@ class _SignUpPageState extends State<SignUpPage> {
       },
     );
   }
+
   void _waitapproval() {
     showDialog(
       context: context,
@@ -85,15 +89,56 @@ class _SignUpPageState extends State<SignUpPage> {
     return emailRegex.hasMatch(email);
   }
 
-  void _signUpWithFirebase() async {
+  Future<void> cometChatLogin() async {
+    String authKey = "406963557ec3469a8334514e054f7035ccee829b"; // Your CometChat Auth Key
+
+    // ✅ Get Firebase user details
+    firebase_auth.User? firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+
+    if (firebaseUser == null) {
+      print("❌ Firebase user is null!");
+      return;
+    }
+
+    String uid = firebaseUser.uid;
+    String name = firebaseUser.displayName ?? "Anonymous User";
+
+    // ✅ Create CometChat User (if not exists)
+    comet_chat.User user = comet_chat.User(
+      uid: uid,
+      name: name,
+    );
+
+    await CometChat.createUser(user, authKey,
+        onSuccess: (comet_chat.User createdUser) {
+          print("✅ CometChat user created successfully: ${createdUser.uid}");
+        },
+        onError: (CometChatException e) {
+          print("⚠️ CometChat user already exists or error: ${e.message}");
+        });
+
+    // ✅ Login User into CometChat
+    await CometChat.login(uid, authKey,
+        onSuccess: (comet_chat.User loggedInUser) {
+          print("✅ CometChat login successful: ${loggedInUser.uid}");
+        },
+        onError: (CometChatException e) {
+          print("❌ CometChat login failed: ${e.message}");
+        });
+  }
+
+
+
+
+  Future<void> _signUpWithFirebase() async {
     try {
       // Create user in Firebase Authentication
-      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      User? user = userCredential.user;
+      firebase_auth.User? user = userCredential.user;
 
       if (user != null) {
         // Save user details in Firestore
@@ -107,9 +152,15 @@ class _SignUpPageState extends State<SignUpPage> {
         await user.updateDisplayName(_nameController.text.trim());
         await user.reload();
 
-        _showSignUpSuccessDialog();
+        // ✅ Check if user role is Client, Engineer, or Planner → then authenticate with CometChat
+        if (_selectedRole == 'Client' || _selectedRole == 'Engineer' || _selectedRole == 'Planner') {
+          await cometChatLogin();
+          _showSignUpSuccessDialog(); // Navigates to `room_section`
+        } else {
+          _waitapproval(); // Navigates to `LoginPage` (for Hardware Shop Owners)
+        }
       }
-    } on FirebaseAuthException catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e) {
       setState(() {
         if (e.code == 'email-already-in-use') {
           _emailError = 'Email is already in use';
@@ -121,6 +172,7 @@ class _SignUpPageState extends State<SignUpPage> {
       });
     }
   }
+
 
   void _validateInputs() {
     setState(() {

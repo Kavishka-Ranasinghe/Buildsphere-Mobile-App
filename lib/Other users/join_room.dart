@@ -1,75 +1,58 @@
 import 'package:flutter/material.dart';
-import 'app_drawer.dart';
-import 'dashboard_item.dart';
-import 'chat_room.dart';
+import 'package:cometchat_sdk/cometchat_sdk.dart';
 
-class JoinRoom extends StatelessWidget {
+class JoinRoom extends StatefulWidget {
   const JoinRoom({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController roomIdController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
+  _JoinRoomState createState() => _JoinRoomState();
+}
 
+class _JoinRoomState extends State<JoinRoom> {
+  final TextEditingController _roomIdController = TextEditingController();
+
+  Future<void> joinChatRoom() async {
+    String guid = _roomIdController.text.trim();
+    if (guid.isEmpty) return;
+
+    await CometChat.joinGroup(
+      guid,
+      CometChatGroupType.public,
+      onSuccess: (Group joinedGroup) {
+        print("✅ Joined Chat Room: ${joinedGroup.guid}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Joined Room '${joinedGroup.name}' Successfully!")),
+        );
+        Navigator.pop(context); // Return to the previous screen after joining room
+      },
+      onError: (CometChatException e) {
+        print("❌ Failed to Join Chat Room: ${e.message}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to join room: ${e.message}")),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Join Room',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.yellowAccent,
-          ),
-        ),
-        backgroundColor: Colors.green,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.yellowAccent),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      drawer: const AppDrawer(), // Use the reusable AppDrawer
+      appBar: AppBar(title: const Text("Join Chat Room")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
-              controller: roomIdController,
+              controller: _roomIdController,
               decoration: const InputDecoration(
-                labelText: 'Room ID',
+                labelText: "Enter Room ID",
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChatRoomsScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-              ),
-              child: const Text(
-                'Enter Room',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                ),
-              ),
+              onPressed: joinChatRoom,
+              child: const Text("Join Room"),
             ),
           ],
         ),
