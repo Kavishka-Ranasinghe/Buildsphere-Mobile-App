@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'Signup Pages/other_sign_up.dart'; // SignUpPage for navigation
-import 'room_section.dart'; // HomePage for normal users
+import 'Other users/room_section.dart'; // HomePage for normal users
 import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
 import 'Admin/admin_dash.dart'; // Admin Dashboard
 import 'package:firebase_auth/firebase_auth.dart';

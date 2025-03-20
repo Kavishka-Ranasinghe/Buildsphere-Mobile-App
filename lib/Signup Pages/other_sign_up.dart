@@ -4,7 +4,7 @@ import '../login.dart'; // Import the LoginPage
 import 'hardware_shop_owner_signup.dart'; // Import the HardwareShopOwnerSignUpPage
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../room_section.dart';
+import '../Other users/room_section.dart';
 
 
 class SignUpPage extends StatefulWidget {

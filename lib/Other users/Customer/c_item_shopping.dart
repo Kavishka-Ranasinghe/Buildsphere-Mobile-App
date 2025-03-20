@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'profile.dart';
+import '../profile.dart';
 import '../app_drawer.dart';
 
 class ItemShoppingScreen extends StatelessWidget {

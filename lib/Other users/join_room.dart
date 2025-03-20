@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_drawer.dart';
-import 'Other users/dashboard_item.dart';
+import 'dashboard_item.dart';
 import 'chat_room.dart';
 
 class JoinRoom extends StatelessWidget {

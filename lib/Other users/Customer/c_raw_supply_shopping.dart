@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'Other users/profile.dart';
-import 'app_drawer.dart';
+import '../profile.dart';
+import '../app_drawer.dart';
 import 'c_raw_item_detail.dart';
 
 class RawSupplyScreen extends StatefulWidget {

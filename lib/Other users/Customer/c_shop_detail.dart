@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'app_drawer.dart';  // Assuming you have an AppDrawer widget.
+import '../app_drawer.dart';  // Assuming you have an AppDrawer widget.
 
 class ShopDetailScreen extends StatelessWidget {
   final String shopName;
