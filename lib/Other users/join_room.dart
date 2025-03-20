@@ -21,7 +21,7 @@ class _JoinRoomState extends State<JoinRoom> {
       onSuccess: (Group joinedGroup) {
         print("✅ Joined Chat Room: ${joinedGroup.guid}");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Joined Room '${joinedGroup.name}' Successfully!")),
+          SnackBar(content: Text("Joined Room '${joinedGroup.name}' Successfully joined!")),
         );
         Navigator.pop(context); // Return to the previous screen after joining room
       },
