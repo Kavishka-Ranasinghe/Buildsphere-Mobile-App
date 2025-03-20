@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'app_drawer.dart';
+import 'chat_screen.dart';
 
 class ChatRoomsScreen extends StatefulWidget {
   const ChatRoomsScreen({super.key});
@@ -96,10 +97,18 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                   leading: const Icon(Icons.chat, color: Colors.green),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    print("✅ Open Chat for Room: ${userGroups[index].guid}");
-                    // In Step 5, we will navigate to the chat page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                          roomId: userGroups[index].guid, // ✅ Pass Room ID
+                          roomName: userGroups[index].name, // ✅ Pass Room Name
+                        ),
+                      ),
+                    );
                   },
                 ),
+
               );
             },
           ),
