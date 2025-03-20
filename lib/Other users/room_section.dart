@@ -87,10 +87,17 @@ class room_section extends StatelessWidget {
                       label: 'Create Room',
                       color: Colors.blue,
                       onTap: () {
+<<<<<<< HEAD
                          Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const CreateRoom()),
                          );
+=======
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CreateRoom()),
+                        );
+>>>>>>> parent of e67352f (.)
                       },
                     ),
 
