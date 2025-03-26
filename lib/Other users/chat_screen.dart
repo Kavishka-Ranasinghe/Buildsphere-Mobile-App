@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cometchat_sdk/models/action.dart' as cometchat;
@@ -26,7 +25,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _messagesRequest = (MessagesRequestBuilder()
       ..guid = widget.roomId
       ..limit = 30)
-
         .build();
 
     fetchMessages();
@@ -38,7 +36,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
     _messagesRequest!.fetchPrevious(
       onSuccess: (List<BaseMessage> fetchedMessages) {
-        debugPrint("✅ Retrieved ${fetchedMessages.length} messages");
         setState(() {
           messages = fetchedMessages.reversed.toList();
         });
@@ -72,7 +69,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     await CometChat.sendMessage(
       message,
       onSuccess: (BaseMessage sentMessage) {
-        debugPrint("✅ Message sent: ${sentMessage.id}");
         setState(() {
           messages.add(sentMessage);
           _messageController.clear();
@@ -118,48 +114,72 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                     bool isSentByMe = message.sender?.uid == snapshot.data?.uid;
 
                     if (message is TextMessage) {
-                      return Align(
-                        alignment: isSentByMe
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 5, horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: isSentByMe
-                                ? Colors.blueAccent
-                                : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                message.text,
-                                style: TextStyle(
-                                  color: isSentByMe
-                                      ? Colors.white
-                                      : Colors.black,
-                                ),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Row(
+                          mainAxisAlignment: isSentByMe
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          children: [
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: isSentByMe
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
+                                children: [
+                                  // Show sender name if not me
+                                  if (!isSentByMe)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        message.sender?.name ?? "Unknown",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 17,
+                                        ),
+                                      ),
+                                    ),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: isSentByMe
+                                          ? Colors.blueAccent
+                                          : Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          message.text,
+                                          style: TextStyle(
+                                            color: isSentByMe
+                                                ? Colors.white
+                                                : Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          formatTimeOnly(message.sentAt),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: isSentByMe
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 5),
-                              Text(
-                                formatTimeOnly(message.sentAt),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isSentByMe
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     }
 
-                    // Group Action (leave, kick, ban)
+                    // Group Action Messages
                     else if (message is cometchat.Action) {
                       final actionType = message.action?.toLowerCase();
                       if (actionType == "leave" ||
@@ -179,7 +199,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                       }
                     }
 
-                    return const SizedBox(); // For unsupported types
+                    return const SizedBox(); // unsupported
                   },
                 );
               },
@@ -192,8 +212,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration:
-                    const InputDecoration(hintText: "Type a message..."),
+                    decoration: const InputDecoration(hintText: "Type a message..."),
                   ),
                 ),
                 IconButton(
