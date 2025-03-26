@@ -78,7 +78,7 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> with MessageListener 
 
   String formatTime(int? timestamp) {
     if (timestamp == null) return "";
-    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 10);
+    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 05);
     return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
 
