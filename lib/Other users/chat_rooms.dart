@@ -1,6 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
-import 'package:flutter/services.dart';
 import 'app_drawer.dart';
 import 'chat_screen.dart';
 
@@ -21,14 +21,12 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
     fetchUserChatRooms();
   }
 
-  // ✅ Fetch Chat Rooms from CometChat
   Future<void> fetchUserChatRooms() async {
     try {
       GroupsRequest groupsRequest = (GroupsRequestBuilder()
         ..limit = 50
-        ..joinedOnly = true
-      ).build();
-
+        ..joinedOnly = true)
+          .build();
 
       await groupsRequest.fetchNext(
         onSuccess: (List<Group> groups) {
@@ -63,13 +61,23 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
+          // 🔲 Background Image
           Positioned.fill(
             child: Image.asset(
               'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
-
+          // 🌫️ Blur + dark overlay
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+              child: Container(
+                color: Colors.black.withOpacity(0.5), // semi-transparent black
+              ),
+            ),
+          ),
+          // 🧱 Main content
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : userGroups.isEmpty
@@ -107,11 +115,11 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
               itemCount: userGroups.length,
               itemBuilder: (context, index) {
                 final group = userGroups[index];
-                final joinedDate = group.joinedAt;
-
 
                 return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  color: Colors.white.withOpacity(0.9),
+                  margin: const EdgeInsets.symmetric(
+                      vertical: 8, horizontal: 16),
                   child: ListTile(
                     leading: Icon(
                       group.type == CometChatGroupType.password
@@ -119,13 +127,10 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                           : Icons.lock_open,
                       color: Colors.green,
                     ),
-                    title: Text(group.name),
-                    subtitle: Text(
-                      "Room ID: ${group.guid}\n"
-                          "Members: ${group.membersCount ?? 'N/A'}\n"
-                          "${joinedDate != null ? "Joined: ${joinedDate.toLocal().toString().split('.')[0]}" : ""}",
+                    title: Text(
+                      group.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    isThreeLine: true,
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.push(

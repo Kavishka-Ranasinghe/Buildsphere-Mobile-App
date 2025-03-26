@@ -6,6 +6,7 @@ import 'room_section.dart';
 import 'Customer/c_item_shopping.dart';
 import 'Customer/c_raw_supply_shopping.dart';
 import '../about_page.dart';
+import 'profile.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -16,21 +17,24 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   String? userRole;
+  String? userName;
   int _tapCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserRole();
+    _fetchUserData();
   }
 
-  Future<void> _fetchUserRole() async {
+  Future<void> _fetchUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      DocumentSnapshot userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         setState(() {
           userRole = userDoc['role'];
+          userName = userDoc['name'];
         });
       }
     }
@@ -74,18 +78,62 @@ class _AppDrawerState extends State<AppDrawer> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 10),
                 const Text(
-                  'Main Menu', // ✅ Added "Main Menu" Subheading
+                  'Main Menu',
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 8),
+                if (userName != null && userRole != null) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Name: $userName',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Role: $userRole',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+
+
               ],
             ),
           ),
+
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text(
+              'My Profile',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+
           ListTile(
             leading: const Icon(Icons.home),
             title: const Text(
@@ -100,6 +148,7 @@ class _AppDrawerState extends State<AppDrawer> {
               );
             },
           ),
+
           ListTile(
             leading: const Icon(Icons.chat),
             title: const Text(
@@ -114,6 +163,7 @@ class _AppDrawerState extends State<AppDrawer> {
               );
             },
           ),
+
           if (userRole == 'Client') ...[
             ListTile(
               leading: const Icon(Icons.shopping_cart),
@@ -144,7 +194,9 @@ class _AppDrawerState extends State<AppDrawer> {
               },
             ),
           ],
+
           const Divider(),
+
           ListTile(
             leading: const Icon(Icons.cancel),
             title: const Text(
