@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
@@ -11,21 +12,39 @@ class ChatRoomsScreen extends StatefulWidget {
   _ChatRoomsScreenState createState() => _ChatRoomsScreenState();
 }
 
-class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
+class _ChatRoomsScreenState extends State<ChatRoomsScreen> with MessageListener {
   List<Conversation> groupConversations = [];
   bool isLoading = true;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     fetchUserChatRooms();
+    CometChat.addMessageListener("room_listener", this);
+
+    // ⏱️ Auto-refresh every 10 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      fetchUserChatRooms(forceUpdate: true);
+    });
   }
 
-  Future<void> fetchUserChatRooms() async {
+  @override
+  void dispose() {
+    CometChat.removeMessageListener("room_listener");
+    _refreshTimer?.cancel(); // stop timer
+    super.dispose();
+  }
+
+  @override
+  void onTextMessageReceived(TextMessage message) async {
+    await fetchUserChatRooms(forceUpdate: true);
+  }
+
+  Future<void> fetchUserChatRooms({bool forceUpdate = false}) async {
     try {
       ConversationsRequest request = (ConversationsRequestBuilder()
-        ..limit = 50)
-          .build();
+        ..limit = 50).build();
 
       await request.fetchNext(
         onSuccess: (List<Conversation> conversations) {
@@ -33,17 +52,18 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
               .where((c) => c.conversationType == "group")
               .toList();
 
-          // Sort based on latest message time
           filtered.sort((a, b) {
             final aSent = a.lastMessage?.sentAt is int ? a.lastMessage?.sentAt as int : 0;
             final bSent = b.lastMessage?.sentAt is int ? b.lastMessage?.sentAt as int : 0;
-            return bSent.compareTo(aSent); // Recent comes first
+            return bSent.compareTo(aSent);
           });
 
-          setState(() {
-            groupConversations = filtered;
-            isLoading = false;
-          });
+          if (forceUpdate || filtered.length != groupConversations.length) {
+            setState(() {
+              groupConversations = List.from(filtered);
+              isLoading = false;
+            });
+          }
         },
         onError: (CometChatException e) {
           print("❌ Failed to fetch conversations: ${e.message}");
@@ -58,7 +78,7 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
 
   String formatTime(int? timestamp) {
     if (timestamp == null) return "";
-    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 10);
     return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
 
@@ -72,23 +92,18 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 🔲 Background image
           Positioned.fill(
             child: Image.asset(
               'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
-          // 🌫️ Blurred dark overlay
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-              ),
+              child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
-          // 🧱 Main content
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : groupConversations.isEmpty
@@ -131,7 +146,6 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                 final time = lastMsg?.sentAt is int
                     ? formatTime(lastMsg?.sentAt as int)
                     : "";
-                // this is correct if sentAt is int
                 final preview = (lastMsg is TextMessage)
                     ? lastMsg.text
                     : "Media/Action";
@@ -159,8 +173,7 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing:
-                    const Icon(Icons.arrow_forward_ios, size: 16),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.push(
                         context,
