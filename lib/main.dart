@@ -8,7 +8,7 @@ void main() async {
   await Firebase.initializeApp();
 
   // CometChat Initialization
-  String appID = "272118efd8608bae";
+  String appID = "272345917d37d43c";
   String region = "in";
 
   AppSettings appSettings = (AppSettingsBuilder()

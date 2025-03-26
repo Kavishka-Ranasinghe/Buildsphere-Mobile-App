@@ -90,7 +90,7 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Future<void> cometChatLogin() async {
-    String authKey = "406963557ec3469a8334514e054f7035ccee829b"; // Your CometChat Auth Key
+    String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e"; // Your CometChat Auth Key
 
     // ✅ Get Firebase user details
     firebase_auth.User? firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
