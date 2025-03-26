@@ -5,7 +5,7 @@ import 'Other users/room_section.dart'; // HomePage for normal users
 import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
 import 'Admin/admin_dash.dart'; // Admin Dashboard
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cometchat_sdk/cometchat_sdk.dart'as comet_chat;
+
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 

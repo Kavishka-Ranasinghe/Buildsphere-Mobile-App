@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cometchat_sdk/models/action.dart' as cometchat;
 import 'package:intl/intl.dart';
+import 'group_info_page.dart';
 
 class ChatScreen extends StatefulWidget {
   final String roomId;
@@ -96,12 +97,25 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.roomName)),
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => GroupInfoPage(groupId: widget.roomId),
+              ),
+            );
+          },
+          child: Text(widget.roomName),
+        ),
+      ),
+
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              reverse: true,
+              reverse: false,
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 BaseMessage message = messages[index];
