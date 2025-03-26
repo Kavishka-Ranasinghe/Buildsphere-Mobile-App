@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
+import 'package:intl/intl.dart';
 
 class GroupInfoPage extends StatefulWidget {
   final String groupId;
@@ -50,6 +51,11 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     );
   }
 
+  String formatDateTime(DateTime? dateTime) {
+    if (dateTime == null) return "N/A";
+    return DateFormat('yyyy-MM-dd – h:mm a').format(dateTime.toLocal());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,8 +65,9 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
           : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ Read-only Group Name + copy
+            // ✅ Group Name (readonly + copy)
             Row(
               children: [
                 Expanded(
@@ -83,7 +90,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
             ),
             const SizedBox(height: 16),
 
-            // ✅ Read-only Group ID + copy
+            // ✅ Group ID (readonly + copy)
             Row(
               children: [
                 Expanded(
@@ -103,6 +110,26 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
                   },
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+
+            // ✅ Created On (shown as topic)
+            Text(
+              "📅 Created On: ${formatDateTime(group?.createdAt)}",
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ✅ Total Members (shown as topic)
+            Text(
+              "👥 Total Members: ${group?.membersCount ?? 'N/A'}",
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),

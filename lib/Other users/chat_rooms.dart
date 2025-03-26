@@ -12,7 +12,7 @@ class ChatRoomsScreen extends StatefulWidget {
 }
 
 class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
-  List<Group> userGroups = [];
+  List<Conversation> groupConversations = [];
   bool isLoading = true;
 
   @override
@@ -23,32 +23,43 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
 
   Future<void> fetchUserChatRooms() async {
     try {
-      GroupsRequest groupsRequest = (GroupsRequestBuilder()
-        ..limit = 50
-        ..joinedOnly = true)
+      ConversationsRequest request = (ConversationsRequestBuilder()
+        ..limit = 50)
           .build();
 
-      await groupsRequest.fetchNext(
-        onSuccess: (List<Group> groups) {
+      await request.fetchNext(
+        onSuccess: (List<Conversation> conversations) {
+          final filtered = conversations
+              .where((c) => c.conversationType == "group")
+              .toList();
+
+          // Sort based on latest message time
+          filtered.sort((a, b) {
+            final aSent = a.lastMessage?.sentAt is int ? a.lastMessage?.sentAt as int : 0;
+            final bSent = b.lastMessage?.sentAt is int ? b.lastMessage?.sentAt as int : 0;
+            return bSent.compareTo(aSent); // Recent comes first
+          });
+
           setState(() {
-            userGroups.clear();
-            userGroups = groups;
+            groupConversations = filtered;
             isLoading = false;
           });
         },
         onError: (CometChatException e) {
-          print("❌ Failed to Fetch Chat Rooms: ${e.message}");
-          setState(() {
-            isLoading = false;
-          });
+          print("❌ Failed to fetch conversations: ${e.message}");
+          setState(() => isLoading = false);
         },
       );
     } catch (e) {
-      print("❌ Exception while fetching chat rooms: $e");
-      setState(() {
-        isLoading = false;
-      });
+      print("❌ Exception while fetching conversations: $e");
+      setState(() => isLoading = false);
     }
+  }
+
+  String formatTime(int? timestamp) {
+    if (timestamp == null) return "";
+    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
 
   @override
@@ -61,26 +72,26 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // 🔲 Background Image
+          // 🔲 Background image
           Positioned.fill(
             child: Image.asset(
               'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
-          // 🌫️ Blur + dark overlay
+          // 🌫️ Blurred dark overlay
           Positioned.fill(
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
               child: Container(
-                color: Colors.black.withOpacity(0.5), // semi-transparent black
+                color: Colors.black.withOpacity(0.5),
               ),
             ),
           ),
           // 🧱 Main content
           isLoading
               ? const Center(child: CircularProgressIndicator())
-              : userGroups.isEmpty
+              : groupConversations.isEmpty
               ? Center(
             child: Container(
               padding: const EdgeInsets.all(20),
@@ -112,9 +123,18 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
               : RefreshIndicator(
             onRefresh: fetchUserChatRooms,
             child: ListView.builder(
-              itemCount: userGroups.length,
+              itemCount: groupConversations.length,
               itemBuilder: (context, index) {
-                final group = userGroups[index];
+                final convo = groupConversations[index];
+                final group = convo.conversationWith as Group;
+                final lastMsg = convo.lastMessage;
+                final time = lastMsg?.sentAt is int
+                    ? formatTime(lastMsg?.sentAt as int)
+                    : "";
+                // this is correct if sentAt is int
+                final preview = (lastMsg is TextMessage)
+                    ? lastMsg.text
+                    : "Media/Action";
 
                 return Card(
                   color: Colors.white.withOpacity(0.9),
@@ -129,9 +149,18 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                     ),
                     title: Text(
                       group.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold),
                     ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    subtitle: Text(
+                      lastMsg != null
+                          ? "$preview  •  $time"
+                          : "No messages yet",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing:
+                    const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       Navigator.push(
                         context,
