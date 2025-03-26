@@ -1,7 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
-// ✅ Rename CometChat's Action model to avoid conflict
 import 'package:cometchat_sdk/models/action.dart' as cometchat;
+import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
   final String roomId;
@@ -24,8 +25,9 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
     _messagesRequest = (MessagesRequestBuilder()
       ..guid = widget.roomId
-      ..limit = 30
-    ).build();
+      ..limit = 30)
+
+        .build();
 
     fetchMessages();
     CometChat.addMessageListener("chat_listener", this);
@@ -82,6 +84,12 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
+  String formatTimeOnly(DateTime? timestamp) {
+    if (timestamp == null) return "";
+    return DateFormat('h:mm a').format(timestamp.toLocal()); // shows 4:45 PM
+  }
+
+
   @override
   void dispose() {
     CometChat.removeMessageListener("chat_listener");
@@ -109,7 +117,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
                     bool isSentByMe = message.sender?.uid == snapshot.data?.uid;
 
-                    // ✅ Text Message
                     if (message is TextMessage) {
                       return Align(
                         alignment: isSentByMe
@@ -125,22 +132,39 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                                 : Colors.grey[300],
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Text(
-                            message.text,
-                            style: TextStyle(
-                              color: isSentByMe ? Colors.white : Colors.black,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                message.text,
+                                style: TextStyle(
+                                  color: isSentByMe
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                formatTimeOnly(message.sentAt),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isSentByMe
+                                      ? Colors.white70
+                                      : Colors.black54,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
                     }
 
-                    // ✅ Group Action Message (joined, left, etc.)
+                    // Group Action (leave, kick, ban)
                     else if (message is cometchat.Action) {
                       final actionType = message.action?.toLowerCase();
-
-                      // Show only important actions like leave, kick, ban
-                      if (actionType == "leave" || actionType == "kick" || actionType == "ban") {
+                      if (actionType == "leave" ||
+                          actionType == "kick" ||
+                          actionType == "ban") {
                         return Center(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 5),
@@ -151,15 +175,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                           ),
                         );
                       } else {
-                        return const SizedBox(); // hide join, add, etc.
+                        return const SizedBox();
                       }
                     }
 
-
-                    // ❌ Unsupported messages
-                    else {
-                      return const SizedBox();
-                    }
+                    return const SizedBox(); // For unsupported types
                   },
                 );
               },
@@ -172,8 +192,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration: const InputDecoration(
-                        hintText: "Type a message..."),
+                    decoration:
+                    const InputDecoration(hintText: "Type a message..."),
                   ),
                 ),
                 IconButton(
