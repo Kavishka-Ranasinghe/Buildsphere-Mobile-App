@@ -10,6 +10,9 @@ import '../login.dart'; // Import the Login Page
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:cometchat_sdk/cometchat_sdk.dart' as comet_chat;
+
+
 
 
 
@@ -314,13 +317,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Function to log out and redirect to login page
   void _logout(BuildContext context) async {
+    // ✅ CometChat Logout
+    await comet_chat.CometChat.logout(
+      onSuccess: (_) {
+        debugPrint("✅ CometChat logout successful");
+      },
+      onError: (comet_chat.CometChatException e) {
+        debugPrint("❌ CometChat logout failed: ${e.message}");
+      },
+    );
+
+    // ✅ Firebase Logout
     await FirebaseAuth.instance.signOut();
+
+    // ✅ Navigate to Login Screen
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
           (route) => false,
     );
   }
+
+
   final List<String> districts = [
     'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
     'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya',

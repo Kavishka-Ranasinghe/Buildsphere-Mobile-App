@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
+import 'package:flutter/services.dart';
 import 'app_drawer.dart';
 import 'chat_screen.dart';
 
@@ -23,13 +24,16 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
   // ✅ Fetch Chat Rooms from CometChat
   Future<void> fetchUserChatRooms() async {
     try {
-      // ✅ Ensure proper instantiation of GroupsRequest
-      GroupsRequest groupsRequest = (GroupsRequestBuilder()..limit = 50).build();
+      GroupsRequest groupsRequest = (GroupsRequestBuilder()
+        ..limit = 50
+        ..joinedOnly = true
+      ).build();
 
-      // ✅ Properly call fetchNext()
+
       await groupsRequest.fetchNext(
         onSuccess: (List<Group> groups) {
           setState(() {
+            userGroups.clear();
             userGroups = groups;
             isLoading = false;
           });
@@ -49,8 +53,6 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,16 +63,15 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/modern.png', // Ensure this image is in your assets folder
+              'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
-          // Chat Room List
+
           isLoading
-              ? const Center(child: CircularProgressIndicator()) // Show loading spinner
+              ? const Center(child: CircularProgressIndicator())
               : userGroups.isEmpty
               ? Center(
             child: Container(
@@ -79,38 +80,68 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> {
                 color: Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
-                'No chat rooms found. Join or create a room!',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'No chat rooms found.\nJoin or create a room!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: fetchUserChatRooms,
+                    child: const Text("Retry"),
+                  ),
+                ],
               ),
             ),
           )
-              : ListView.builder(
-            itemCount: userGroups.length,
-            itemBuilder: (context, index) {
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                child: ListTile(
-                  title: Text(userGroups[index].name),
-                  subtitle: Text("Room ID: ${userGroups[index].guid}"),
-                  leading: const Icon(Icons.chat, color: Colors.green),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatScreen(
-                          roomId: userGroups[index].guid, // ✅ Pass Room ID
-                          roomName: userGroups[index].name, // ✅ Pass Room Name
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              : RefreshIndicator(
+            onRefresh: fetchUserChatRooms,
+            child: ListView.builder(
+              itemCount: userGroups.length,
+              itemBuilder: (context, index) {
+                final group = userGroups[index];
+                final joinedDate = group.joinedAt;
 
-              );
-            },
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: ListTile(
+                    leading: Icon(
+                      group.type == CometChatGroupType.password
+                          ? Icons.lock
+                          : Icons.lock_open,
+                      color: Colors.green,
+                    ),
+                    title: Text(group.name),
+                    subtitle: Text(
+                      "Room ID: ${group.guid}\n"
+                          "Members: ${group.membersCount ?? 'N/A'}\n"
+                          "${joinedDate != null ? "Joined: ${joinedDate.toLocal().toString().split('.')[0]}" : ""}",
+                    ),
+                    isThreeLine: true,
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                            roomId: group.guid,
+                            roomName: group.name,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
