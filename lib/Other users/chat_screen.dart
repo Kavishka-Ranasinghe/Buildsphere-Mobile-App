@@ -16,6 +16,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> with MessageListener {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   List<BaseMessage> messages = [];
   MessagesRequest? _messagesRequest;
 
@@ -40,6 +41,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         setState(() {
           messages = fetchedMessages.reversed.toList();
         });
+
+        // Scroll to bottom after loading messages
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
       },
       onError: (CometChatException e) {
         debugPrint("❌ Failed to fetch messages: ${e.message}");
@@ -47,11 +53,25 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   @override
   void onTextMessageReceived(TextMessage textMessage) {
     if (textMessage.receiverUid == widget.roomId) {
       setState(() {
         messages.add(textMessage);
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
       });
     }
   }
@@ -74,6 +94,10 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           messages.add(sentMessage);
           _messageController.clear();
         });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
       },
       onError: (CometChatException e) {
         debugPrint("❌ Message sending failed: ${e.message}");
@@ -83,14 +107,14 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
   String formatTimeOnly(DateTime? timestamp) {
     if (timestamp == null) return "";
-    return DateFormat('h:mm a').format(timestamp.toLocal()); // shows 4:45 PM
+    return DateFormat('h:mm a').format(timestamp.toLocal());
   }
-
 
   @override
   void dispose() {
     CometChat.removeMessageListener("chat_listener");
     _messagesRequest = null;
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -110,12 +134,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           child: Text(widget.roomName),
         ),
       ),
-
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              reverse: false,
+              controller: _scrollController,
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 BaseMessage message = messages[index];
@@ -141,7 +164,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                                     ? CrossAxisAlignment.end
                                     : CrossAxisAlignment.start,
                                 children: [
-                                  // Show sender name if not me
                                   if (!isSentByMe)
                                     Padding(
                                       padding: const EdgeInsets.only(bottom: 4),
@@ -191,10 +213,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                           ],
                         ),
                       );
-                    }
-
-                    // Group Action Messages
-                    else if (message is cometchat.Action) {
+                    } else if (message is cometchat.Action) {
                       final actionType = message.action?.toLowerCase();
                       if (actionType == "leave" ||
                           actionType == "kick" ||
@@ -213,7 +232,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                       }
                     }
 
-                    return const SizedBox(); // unsupported
+                    return const SizedBox();
                   },
                 );
               },

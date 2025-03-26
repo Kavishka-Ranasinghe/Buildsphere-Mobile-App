@@ -13,8 +13,6 @@ class GroupInfoPage extends StatefulWidget {
 
 class _GroupInfoPageState extends State<GroupInfoPage> {
   Group? group;
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = true;
 
   @override
@@ -30,8 +28,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
         onSuccess: (Group fetchedGroup) {
           setState(() {
             group = fetchedGroup;
-            _nameController.text = group?.name ?? "";
-            _passwordController.text = group?.password ?? "";
             _isLoading = false;
           });
         },
@@ -54,34 +50,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     );
   }
 
-  void updateGroupInfo() async {
-    if (group == null) return;
-
-    Group updatedGroup = Group(
-      guid: group!.guid,
-      name: _nameController.text,
-      type: group!.type,
-      password: _passwordController.text,
-    );
-
-    await CometChat.updateGroup(
-      group: updatedGroup,
-      onSuccess: (Group updated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Group info updated")),
-        );
-        setState(() {
-          group = updated;
-        });
-      },
-      onError: (CometChatException e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Failed to update: ${e.message}")),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,13 +60,26 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // ✅ Editable Group Name
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Group Name",
-                border: OutlineInputBorder(),
-              ),
+            // ✅ Read-only Group Name + copy
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    readOnly: true,
+                    initialValue: group?.name ?? "",
+                    decoration: const InputDecoration(
+                      labelText: "Group Name",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.copy),
+                  onPressed: () {
+                    copyToClipboard(group?.name ?? "", "Group Name");
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -122,34 +103,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
                   },
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-
-            // ✅ Editable password + copy
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: "Group Password",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.copy),
-                  onPressed: () {
-                    copyToClipboard(_passwordController.text, "Password");
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            ElevatedButton(
-              onPressed: updateGroupInfo,
-              child: const Text("Save Changes"),
             ),
           ],
         ),

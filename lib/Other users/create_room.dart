@@ -12,10 +12,8 @@ class CreateRoom extends StatefulWidget {
 
 class _CreateRoomState extends State<CreateRoom> {
   final TextEditingController _roomNameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmNameController = TextEditingController();
   late String _generatedRoomId;
-  bool _obscurePassword = true;
-
 
   @override
   void initState() {
@@ -30,11 +28,18 @@ class _CreateRoomState extends State<CreateRoom> {
 
   Future<void> createChatRoom() async {
     String groupName = _roomNameController.text.trim();
-    String password = _passwordController.text.trim();
+    String confirmName = _confirmNameController.text.trim();
 
-    if (groupName.isEmpty || password.isEmpty) {
+    if (groupName.isEmpty || confirmName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter both room name and password")),
+        const SnackBar(content: Text("Please fill out all fields")),
+      );
+      return;
+    }
+
+    if (groupName != confirmName) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Group names do not match")),
       );
       return;
     }
@@ -46,7 +51,7 @@ class _CreateRoomState extends State<CreateRoom> {
       guid: _generatedRoomId,
       name: groupName,
       type: CometChatGroupType.password,
-      password: password,
+      password: groupName, // ✅ group name is used as password
       owner: ownerUid,
     );
 
@@ -76,7 +81,7 @@ class _CreateRoomState extends State<CreateRoom> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Place this in your build method inside a Row for TextField + Icon
+            // 🔐 Room ID
             Row(
               children: [
                 Expanded(
@@ -84,7 +89,7 @@ class _CreateRoomState extends State<CreateRoom> {
                     readOnly: true,
                     controller: TextEditingController(text: _generatedRoomId),
                     decoration: const InputDecoration(
-                      labelText: "Room ID (share this with others)",
+                      labelText: "Room ID (share this)",
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -95,7 +100,7 @@ class _CreateRoomState extends State<CreateRoom> {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: _generatedRoomId));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Room ID copied to clipboard!")),
+                      const SnackBar(content: Text("Room ID copied!")),
                     );
                   },
                 ),
@@ -104,33 +109,23 @@ class _CreateRoomState extends State<CreateRoom> {
 
             const SizedBox(height: 16),
 
-            // 📝 Room Name
+            // 📝 Group Name
             TextField(
               controller: _roomNameController,
               decoration: const InputDecoration(
-                labelText: "Room Name",
+                labelText: "Group Name",
                 border: OutlineInputBorder(),
               ),
             ),
+
             const SizedBox(height: 16),
 
-            // 🔐 Password
+            // ✅ Confirm Group Name
             TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: "Room Password",
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
+              controller: _confirmNameController,
+              decoration: const InputDecoration(
+                labelText: "Confirm Group Name",
+                border: OutlineInputBorder(),
               ),
             ),
 

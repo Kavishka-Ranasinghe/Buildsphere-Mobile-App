@@ -10,16 +10,15 @@ class JoinRoom extends StatefulWidget {
 
 class _JoinRoomState extends State<JoinRoom> {
   final TextEditingController _roomIdController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final TextEditingController _roomNameController = TextEditingController();
 
   Future<void> joinChatRoom() async {
     String guid = _roomIdController.text.trim();
-    String password = _passwordController.text.trim();
+    String roomName = _roomNameController.text.trim();
 
-    if (guid.isEmpty || password.isEmpty) {
+    if (guid.isEmpty || roomName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter Room ID and Password")),
+        const SnackBar(content: Text("Please enter Room ID and Room Name")),
       );
       return;
     }
@@ -27,7 +26,7 @@ class _JoinRoomState extends State<JoinRoom> {
     await CometChat.joinGroup(
       guid,
       CometChatGroupType.password,
-      password: password,
+      password: roomName,
       onSuccess: (Group joinedGroup) {
         print("✅ Joined Chat Room: ${joinedGroup.guid}");
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,6 +51,7 @@ class _JoinRoomState extends State<JoinRoom> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Room ID Field
             TextField(
               controller: _roomIdController,
               decoration: const InputDecoration(
@@ -61,23 +61,12 @@ class _JoinRoomState extends State<JoinRoom> {
             ),
             const SizedBox(height: 16),
 
-            // 🔐 Password Field with toggle
+            // Room Name Field (used as password, but visible)
             TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: "Enter Room Password",
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
+              controller: _roomNameController,
+              decoration: const InputDecoration(
+                labelText: "Enter Room Name",
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
