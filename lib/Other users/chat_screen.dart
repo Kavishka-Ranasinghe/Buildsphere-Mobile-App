@@ -7,6 +7,8 @@ import 'package:cometchat_sdk/models/action.dart' as cometchat;
 import 'package:intl/intl.dart';
 import 'group_info_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'pdf_viewer_page.dart';
+
 
 
 class ChatScreen extends StatefulWidget {
@@ -399,7 +401,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                   ),
                 const SizedBox(height: 5),
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     if (isImage && fileUrl != null) {
                       Navigator.push(
                         context,
@@ -407,8 +409,17 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                           builder: (_) => FullScreenImageView(imageUrl: fileUrl),
                         ),
                       );
+                    } else if (fileUrl != null && fileName.endsWith(".pdf")) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
+                        ),
+                      );
                     }
+
                   },
+
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
