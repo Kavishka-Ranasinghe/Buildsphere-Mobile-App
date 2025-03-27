@@ -1,3 +1,4 @@
+// (keep existing imports)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
@@ -15,6 +16,7 @@ class GroupInfoPage extends StatefulWidget {
 class _GroupInfoPageState extends State<GroupInfoPage> {
   Group? group;
   List<GroupMember> groupMembers = [];
+  User? currentUser;
   bool _isLoading = true;
 
   @override
@@ -22,6 +24,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     super.initState();
     fetchGroupInfo();
     fetchGroupMembers();
+    fetchCurrentUser();
   }
 
   Future<void> fetchGroupInfo() async {
@@ -36,9 +39,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
         },
         onError: (CometChatException e) {
           debugPrint("❌ Error fetching group: ${e.message}");
-          setState(() {
-            _isLoading = false;
-          });
+          setState(() => _isLoading = false);
         },
       );
     } catch (e) {
@@ -68,6 +69,9 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     }
   }
 
+  Future<void> fetchCurrentUser() async {
+    currentUser = await CometChat.getLoggedInUser();
+  }
 
   void copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
@@ -79,6 +83,57 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
   String formatDateTime(DateTime? dateTime) {
     if (dateTime == null) return "N/A";
     return DateFormat('yyyy-MM-dd – h:mm a').format(dateTime.toLocal());
+  }
+
+  void showMemberActions(GroupMember member) {
+    final isOwner = currentUser?.uid == group?.owner;
+    final isSelf = currentUser?.uid == member.uid;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('View Profile'),
+              onTap: () {
+                Navigator.pop(ctx);
+                // You can push to a profile view page here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Profile view not implemented")),
+                );
+              },
+            ),
+            if (isOwner && !isSelf)
+              ListTile(
+                leading: const Icon(Icons.remove_circle, color: Colors.red),
+                title: const Text("Remove from Group", style: TextStyle(color: Colors.red)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await CometChat.kickGroupMember(
+                    guid: widget.groupId,
+                    uid: member.uid,
+                    onSuccess: (_) {
+                      setState(() {
+                        groupMembers.removeWhere((m) => m.uid == member.uid);
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("${member.name} removed from group")),
+                      );
+                    },
+                    onError: (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("❌ Failed to remove: ${e.message}")),
+                      );
+                    },
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -150,13 +205,23 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
             const SizedBox(height: 12),
             if (groupMembers.isEmpty)
               const Text("No members found."),
-            ...groupMembers.map((member) => ListTile(
-              leading: CircleAvatar(
-                child: Text(member.name.substring(0, 1).toUpperCase()),
-              ),
-              title: Text(member.name),
-              trailing: Text(member.scope ?? "member"),
-            )),
+            ...groupMembers.map(
+                  (member) {
+                final isSelf = currentUser?.uid == member.uid;
+                final displayName = isSelf ? "${member.name} (you)" : member.name;
+
+                return ListTile(
+                  onTap: () => showMemberActions(member),
+                  leading: CircleAvatar(
+                    child: Text(member.name.substring(0, 1).toUpperCase()),
+                  ),
+                  title: Text(displayName),
+
+                  trailing: Text(member.scope ?? "member"),
+                );
+              },
+            ),
+
           ],
         ),
       ),
