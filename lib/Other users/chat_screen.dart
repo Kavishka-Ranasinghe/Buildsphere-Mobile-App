@@ -339,14 +339,14 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
             child: Column(
               crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                if (!isSentByMe)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      message.sender?.name ?? "Unknown",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                    ),
+                // ✅ Show "you" if it's your message
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                   ),
+                ),
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -379,6 +379,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
+
   Widget _buildMediaMessage(MediaMessage message, bool isSentByMe) {
     final fileUrl = message.attachment?.fileUrl;
     final fileName = message.attachment?.fileName?.toLowerCase() ?? "";
@@ -392,14 +393,16 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         children: [
           Flexible(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                if (!isSentByMe)
-                  Text(
-                    message.sender?.name ?? "Unknown",
+                // ✅ Sender name or "you"
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                const SizedBox(height: 5),
+                ),
                 GestureDetector(
                   onTap: () async {
                     if (isImage && fileUrl != null) {
@@ -417,13 +420,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                         ),
                       );
                     }
-
                   },
-
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: isSentByMe ? Colors.blueAccent : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: isImage && fileUrl != null
@@ -443,16 +444,27 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                         : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.insert_drive_file),
+                        Icon(
+                          Icons.insert_drive_file,
+                          color: isSentByMe ? Colors.white : Colors.black,
+                        ),
                         const SizedBox(width: 8),
-                        Text(fileName),
+                        Text(
+                          fileName,
+                          style: TextStyle(
+                            color: isSentByMe ? Colors.white : Colors.black,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
                 Text(
                   formatTimeOnly(message.sentAt),
-                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isSentByMe ? Colors.white70 : Colors.black54,
+                  ),
                 ),
               ],
             ),
@@ -461,6 +473,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       ),
     );
   }
+
 
 
 
