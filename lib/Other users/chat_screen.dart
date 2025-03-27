@@ -1,3 +1,6 @@
+// (Keep existing imports)
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cometchat_sdk/models/action.dart' as cometchat;
@@ -12,6 +15,27 @@ class ChatScreen extends StatefulWidget {
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
+}
+class FullScreenImageView extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageView({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          child: Image.network(imageUrl),
+        ),
+      ),
+    );
+  }
 }
 
 class _ChatScreenState extends State<ChatScreen> with MessageListener {
@@ -60,7 +84,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _messagesRequest!.fetchPrevious(
       onSuccess: (List<BaseMessage> fetchedMessages) {
         setState(() {
-          messages = fetchedMessages.reversed.toList();
+          messages = fetchedMessages; // ⛔ no reverse
         });
         _scrollToBottom();
       },
@@ -70,6 +94,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
+
   Future<void> loadOlderMessages() async {
     if (_messagesRequest == null || _isLoadingOldMessages) return;
     _isLoadingOldMessages = true;
@@ -78,7 +103,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       onSuccess: (List<BaseMessage> olderMessages) {
         if (olderMessages.isNotEmpty) {
           setState(() {
-            messages.insertAll(0, olderMessages.reversed.toList());
+            messages.addAll(olderMessages); // 🔁 no reverse, just append
           });
         }
         _isLoadingOldMessages = false;
@@ -89,6 +114,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       },
     );
   }
+
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -103,8 +129,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       });
     });
   }
-
-
 
   @override
   void onTextMessageReceived(TextMessage textMessage) {
@@ -148,6 +172,35 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
+  Future<void> pickAndSendFile() async {
+    final result = await FilePicker.platform.pickFiles();
+
+    if (result != null && result.files.single.path != null) {
+      String filePath = result.files.single.path!;
+
+      MediaMessage mediaMessage = MediaMessage(
+        receiverUid: widget.roomId,
+        receiverType: CometChatReceiverType.group,
+        file: filePath, // 🔥 fixed here
+        type: CometChatMessageType.file,
+      );
+
+      CometChat.sendMediaMessage(
+        mediaMessage,
+        onSuccess: (BaseMessage sentMessage) {
+          setState(() {
+            messages.add(sentMessage);
+          });
+          _scrollToBottom();
+        },
+        onError: (CometChatException e) {
+          debugPrint("❌ Failed to send file: ${e.message}");
+        },
+      );
+    }
+  }
+
+
   String formatTimeOnly(DateTime? timestamp) {
     if (timestamp == null) return "";
     return DateFormat('h:mm a').format(timestamp.toLocal());
@@ -186,10 +239,10 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                   padding: const EdgeInsets.only(bottom: 60),
                   child: ListView.builder(
                     controller: _scrollController,
+                    reverse: true, // ⬇️ latest messages appear at bottom
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       BaseMessage message = messages[index];
-                      bool isLast = index == messages.length - 1;
 
                       return FutureBuilder<User?>(
                         future: CometChat.getLoggedInUser(),
@@ -199,74 +252,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                           bool isSentByMe = message.sender?.uid == snapshot.data?.uid;
 
                           if (message is TextMessage) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: Row(
-                                mainAxisAlignment: isSentByMe
-                                    ? MainAxisAlignment.end
-                                    : MainAxisAlignment.start,
-                                children: [
-                                  Flexible(
-                                    child: Column(
-                                      crossAxisAlignment: isSentByMe
-                                          ? CrossAxisAlignment.end
-                                          : CrossAxisAlignment.start,
-                                      children: [
-                                        if (!isSentByMe)
-                                          Padding(
-                                            padding: const EdgeInsets.only(bottom: 4),
-                                            child: Text(
-                                              message.sender?.name ?? "Unknown",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 17,
-                                              ),
-                                            ),
-                                          ),
-                                        Container(
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: isSentByMe
-                                                ? Colors.blueAccent
-                                                : Colors.grey[300],
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                message.text,
-                                                style: TextStyle(
-                                                  color: isSentByMe ? Colors.white : Colors.black,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 5),
-                                              Text(
-                                                formatTimeOnly(message.sentAt),
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: isSentByMe ? Colors.white70 : Colors.black54,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
+                            return _buildTextMessage(message, isSentByMe);
+                          } else if (message is MediaMessage) {
+                            return _buildMediaMessage(message, isSentByMe);
                           } else if (message is cometchat.Action) {
-                            final actionType = message.action?.toLowerCase();
-                            if (actionType == "leave" || actionType == "kick" || actionType == "ban") {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 5),
-                                  child: Text("⚠️ ${message.message}", style: const TextStyle(color: Colors.grey)),
-                                ),
-                              );
-                            }
+                            return _buildGroupAction(message);
                           }
 
                           return const SizedBox();
@@ -280,6 +270,10 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.attach_file),
+                      onPressed: pickAndSendFile,
+                    ),
                     Expanded(
                       child: TextField(
                         controller: _messageController,
@@ -295,8 +289,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
               ),
             ],
           ),
-
-          // 🔽 Scroll-to-bottom button
           if (_showScrollDownButton)
             Positioned(
               bottom: 80,
@@ -311,5 +303,139 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         ],
       ),
     );
+  }
+
+  Widget _buildTextMessage(TextMessage message, bool isSentByMe) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Row(
+        mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                if (!isSentByMe)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      message.sender?.name ?? "Unknown",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isSentByMe ? Colors.blueAccent : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.text,
+                        style: TextStyle(color: isSentByMe ? Colors.white : Colors.black),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        formatTimeOnly(message.sentAt),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isSentByMe ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMediaMessage(MediaMessage message, bool isSentByMe) {
+    final fileUrl = message.attachment?.fileUrl;
+    final fileName = message.attachment?.fileName?.toLowerCase() ?? "";
+    final isImage = fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png") || fileName.endsWith(".gif");
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Row(
+        mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!isSentByMe)
+                  Text(
+                    message.sender?.name ?? "Unknown",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                const SizedBox(height: 5),
+                GestureDetector(
+                  onTap: () {
+                    if (isImage && fileUrl != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FullScreenImageView(imageUrl: fileUrl),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: isImage && fileUrl != null
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        fileUrl,
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                        : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.insert_drive_file),
+                        const SizedBox(width: 8),
+                        Text(fileName),
+                      ],
+                    ),
+                  ),
+                ),
+                Text(
+                  formatTimeOnly(message.sentAt),
+                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildGroupAction(cometchat.Action message) {
+    final actionType = message.action?.toLowerCase();
+    if (actionType == "leave" || actionType == "kick" || actionType == "ban") {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: Text("⚠️ ${message.message}", style: const TextStyle(color: Colors.grey)),
+        ),
+      );
+    }
+    return const SizedBox();
   }
 }

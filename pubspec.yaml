@@ -40,6 +40,9 @@ dependencies:
   cometchat_sdk: ^4.0.19
   cometchat: ^3.0.13
   url_launcher: ^6.3.1  # Version as of now; check for latest version
+  file_picker: ^6.1.1
+  open_file: ^3.3.2
+  video_player: ^2.7.0
   path_provider: ^2.1.5
   cached_network_image: ^3.2.3
   image: ^4.5.3
