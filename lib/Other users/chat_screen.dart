@@ -62,21 +62,25 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
 
-      if (_scrollController.offset <= 100 && !_isLoadingOldMessages) {
+      // Load older messages when near the top of reversed list
+      if (_scrollController.offset >= _scrollController.position.maxScrollExtent - 100 &&
+          !_isLoadingOldMessages) {
         loadOlderMessages();
       }
 
-      const threshold = 300.0;
-      if (_scrollController.offset < _scrollController.position.maxScrollExtent - threshold) {
-        if (!_showScrollDownButton) {
-          setState(() => _showScrollDownButton = true);
-        }
-      } else {
-        if (_showScrollDownButton) {
-          setState(() => _showScrollDownButton = false);
-        }
+      const scrollThreshold = 200.0;
+
+      // ✅ Detect if user is away from bottom
+      final isAtBottom = _scrollController.offset <= scrollThreshold;
+
+      if (!isAtBottom && !_showScrollDownButton) {
+        setState(() => _showScrollDownButton = true);
+      } else if (isAtBottom && _showScrollDownButton) {
+        setState(() => _showScrollDownButton = false);
       }
     });
+
+
 
     fetchMessages();
     CometChat.addMessageListener("chat_listener", this);
