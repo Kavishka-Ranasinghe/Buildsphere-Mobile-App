@@ -34,24 +34,18 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
 
-      // 👇 Load older messages if user scrolls to top
       if (_scrollController.offset <= 100 && !_isLoadingOldMessages) {
         loadOlderMessages();
       }
 
       const threshold = 300.0;
-      if (_scrollController.offset <
-          _scrollController.position.maxScrollExtent - threshold) {
+      if (_scrollController.offset < _scrollController.position.maxScrollExtent - threshold) {
         if (!_showScrollDownButton) {
-          setState(() {
-            _showScrollDownButton = true;
-          });
+          setState(() => _showScrollDownButton = true);
         }
       } else {
         if (_showScrollDownButton) {
-          setState(() {
-            _showScrollDownButton = false;
-          });
+          setState(() => _showScrollDownButton = false);
         }
       }
     });
@@ -98,13 +92,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 150), () {
+      Future.delayed(const Duration(milliseconds: 50), () {
         if (_scrollController.hasClients) {
-          final bottomOffset = _scrollController.position.maxScrollExtent + 100;
-
           _scrollController.animateTo(
-            bottomOffset,
-            duration: const Duration(milliseconds: 500),
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 1000),
             curve: Curves.easeOut,
           );
         }
@@ -113,12 +105,12 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   }
 
 
+
   @override
   void onTextMessageReceived(TextMessage textMessage) {
     if (textMessage.receiverUid == widget.roomId) {
       final isNearBottom = _scrollController.hasClients &&
-          _scrollController.offset >=
-              _scrollController.position.maxScrollExtent - 400;
+          _scrollController.offset >= _scrollController.position.maxScrollExtent - 400;
 
       setState(() {
         messages.add(textMessage);
@@ -191,23 +183,23 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
             children: [
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 60), // avoids overlap
+                  padding: const EdgeInsets.only(bottom: 60),
                   child: ListView.builder(
                     controller: _scrollController,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       BaseMessage message = messages[index];
+                      bool isLast = index == messages.length - 1;
 
                       return FutureBuilder<User?>(
                         future: CometChat.getLoggedInUser(),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) return const SizedBox();
 
-                          bool isSentByMe =
-                              message.sender?.uid == snapshot.data?.uid;
+                          bool isSentByMe = message.sender?.uid == snapshot.data?.uid;
 
                           if (message is TextMessage) {
-                            return Padding(
+                            return Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               child: Row(
                                 mainAxisAlignment: isSentByMe
@@ -245,9 +237,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                                               Text(
                                                 message.text,
                                                 style: TextStyle(
-                                                  color: isSentByMe
-                                                      ? Colors.white
-                                                      : Colors.black,
+                                                  color: isSentByMe ? Colors.white : Colors.black,
                                                 ),
                                               ),
                                               const SizedBox(height: 5),
@@ -255,9 +245,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                                                 formatTimeOnly(message.sentAt),
                                                 style: TextStyle(
                                                   fontSize: 10,
-                                                  color: isSentByMe
-                                                      ? Colors.white70
-                                                      : Colors.black54,
+                                                  color: isSentByMe ? Colors.white70 : Colors.black54,
                                                 ),
                                               ),
                                             ],
@@ -271,20 +259,13 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                             );
                           } else if (message is cometchat.Action) {
                             final actionType = message.action?.toLowerCase();
-                            if (actionType == "leave" ||
-                                actionType == "kick" ||
-                                actionType == "ban") {
+                            if (actionType == "leave" || actionType == "kick" || actionType == "ban") {
                               return Center(
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 5),
-                                  child: Text(
-                                    "⚠️ ${message.message}",
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
+                                  child: Text("⚠️ ${message.message}", style: const TextStyle(color: Colors.grey)),
                                 ),
                               );
-                            } else {
-                              return const SizedBox();
                             }
                           }
 
