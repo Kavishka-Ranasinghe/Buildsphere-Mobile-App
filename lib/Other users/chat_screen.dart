@@ -6,6 +6,8 @@ import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cometchat_sdk/models/action.dart' as cometchat;
 import 'package:intl/intl.dart';
 import 'group_info_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 
 class ChatScreen extends StatefulWidget {
   final String roomId;
@@ -46,14 +48,14 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   bool _showScrollDownButton = false;
   bool _isLoadingOldMessages = false;
 
+
   @override
   void initState() {
     super.initState();
 
     _messagesRequest = (MessagesRequestBuilder()
       ..guid = widget.roomId
-      ..limit = 30)
-        .build();
+      ..limit = 30).build();
 
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
@@ -77,6 +79,15 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     fetchMessages();
     CometChat.addMessageListener("chat_listener", this);
   }
+
+  @override
+  void dispose() {
+    CometChat.removeMessageListener("chat_listener");
+    _messagesRequest = null;
+    _scrollController.dispose();
+    super.dispose();
+  }
+
 
   Future<void> fetchMessages() async {
     if (_messagesRequest == null) return;
@@ -135,14 +146,32 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           _scrollController.offset >= _scrollController.position.maxScrollExtent - 400;
 
       setState(() {
-        messages.add(textMessage);
+        messages.insert(0, textMessage);
       });
+
 
       if (isNearBottom) {
         _scrollToBottom();
       }
     }
   }
+  @override
+  void onMediaMessageReceived(MediaMessage mediaMessage) {
+    if (mediaMessage.receiverUid == widget.roomId) {
+      final isNearBottom = _scrollController.hasClients &&
+          _scrollController.offset >= _scrollController.position.maxScrollExtent - 400;
+
+      setState(() {
+        messages.insert(0, mediaMessage);
+      });
+
+
+      if (isNearBottom) {
+        _scrollToBottom();
+      }
+    }
+  }
+
 
   Future<void> sendMessage() async {
     String messageText = _messageController.text.trim();
@@ -159,11 +188,12 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       message,
       onSuccess: (BaseMessage sentMessage) {
         setState(() {
-          messages.add(sentMessage);
+          messages.insert(0, sentMessage);
           _messageController.clear();
         });
         _scrollToBottom();
       },
+
       onError: (CometChatException e) {
         debugPrint("❌ Message sending failed: ${e.message}");
       },
@@ -187,7 +217,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         mediaMessage,
         onSuccess: (BaseMessage sentMessage) {
           setState(() {
-            messages.add(sentMessage);
+            messages.insert(0, sentMessage);
           });
           _scrollToBottom();
         },
@@ -204,13 +234,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     return DateFormat('h:mm a').format(timestamp.toLocal());
   }
 
-  @override
-  void dispose() {
-    CometChat.removeMessageListener("chat_listener");
-    _messagesRequest = null;
-    _scrollController.dispose();
-    super.dispose();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -236,6 +260,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 60),
                   child: ListView.builder(
+                    reverse: true, // 👈 Important to show newest at bottom
                     controller: _scrollController,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
@@ -355,7 +380,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   Widget _buildMediaMessage(MediaMessage message, bool isSentByMe) {
     final fileUrl = message.attachment?.fileUrl;
     final fileName = message.attachment?.fileName?.toLowerCase() ?? "";
-    final isImage = fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png") || fileName.endsWith(".gif");
+    final isImage = fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
+        fileName.endsWith(".png") || fileName.endsWith(".gif");
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -392,11 +418,15 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                     child: isImage && fileUrl != null
                         ? ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        fileUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: fileUrl,
                         width: 180,
                         height: 180,
                         fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                        const CircularProgressIndicator(),
+                        errorWidget: (context, url, error) =>
+                        const Icon(Icons.broken_image),
                       ),
                     )
                         : Row(
@@ -420,6 +450,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       ),
     );
   }
+
 
 
 
