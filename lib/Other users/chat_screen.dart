@@ -19,6 +19,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   final ScrollController _scrollController = ScrollController();
   List<BaseMessage> messages = [];
   MessagesRequest? _messagesRequest;
+  bool _showScrollDownButton = false;
+  bool _isLoadingOldMessages = false;
 
   @override
   void initState() {
@@ -28,6 +30,31 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       ..guid = widget.roomId
       ..limit = 30)
         .build();
+
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+
+      // 👇 Load older messages if user scrolls to top
+      if (_scrollController.offset <= 100 && !_isLoadingOldMessages) {
+        loadOlderMessages();
+      }
+
+      const threshold = 300.0;
+      if (_scrollController.offset <
+          _scrollController.position.maxScrollExtent - threshold) {
+        if (!_showScrollDownButton) {
+          setState(() {
+            _showScrollDownButton = true;
+          });
+        }
+      } else {
+        if (_showScrollDownButton) {
+          setState(() {
+            _showScrollDownButton = false;
+          });
+        }
+      }
+    });
 
     fetchMessages();
     CometChat.addMessageListener("chat_listener", this);
@@ -41,11 +68,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         setState(() {
           messages = fetchedMessages.reversed.toList();
         });
-
-        // Scroll to bottom after loading messages
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToBottom();
-        });
+        _scrollToBottom();
       },
       onError: (CometChatException e) {
         debugPrint("❌ Failed to fetch messages: ${e.message}");
@@ -53,26 +76,57 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+  Future<void> loadOlderMessages() async {
+    if (_messagesRequest == null || _isLoadingOldMessages) return;
+    _isLoadingOldMessages = true;
+
+    _messagesRequest!.fetchPrevious(
+      onSuccess: (List<BaseMessage> olderMessages) {
+        if (olderMessages.isNotEmpty) {
+          setState(() {
+            messages.insertAll(0, olderMessages.reversed.toList());
+          });
+        }
+        _isLoadingOldMessages = false;
+      },
+      onError: (CometChatException e) {
+        debugPrint("⚠️ Error fetching older messages: ${e.message}");
+        _isLoadingOldMessages = false;
+      },
+    );
   }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (_scrollController.hasClients) {
+          final bottomOffset = _scrollController.position.maxScrollExtent + 100;
+
+          _scrollController.animateTo(
+            bottomOffset,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    });
+  }
+
 
   @override
   void onTextMessageReceived(TextMessage textMessage) {
     if (textMessage.receiverUid == widget.roomId) {
+      final isNearBottom = _scrollController.hasClients &&
+          _scrollController.offset >=
+              _scrollController.position.maxScrollExtent - 400;
+
       setState(() {
         messages.add(textMessage);
       });
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isNearBottom) {
         _scrollToBottom();
-      });
+      }
     }
   }
 
@@ -94,10 +148,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           messages.add(sentMessage);
           _messageController.clear();
         });
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToBottom();
-        });
+        _scrollToBottom();
       },
       onError: (CometChatException e) {
         debugPrint("❌ Message sending failed: ${e.message}");
@@ -134,74 +185,82 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           child: Text(widget.roomName),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                BaseMessage message = messages[index];
+          Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 60), // avoids overlap
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      BaseMessage message = messages[index];
 
-                return FutureBuilder<User?>(
-                  future: CometChat.getLoggedInUser(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const SizedBox();
+                      return FutureBuilder<User?>(
+                        future: CometChat.getLoggedInUser(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) return const SizedBox();
 
-                    bool isSentByMe = message.sender?.uid == snapshot.data?.uid;
+                          bool isSentByMe =
+                              message.sender?.uid == snapshot.data?.uid;
 
-                    if (message is TextMessage) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: isSentByMe
-                              ? MainAxisAlignment.end
-                              : MainAxisAlignment.start,
-                          children: [
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: isSentByMe
-                                    ? CrossAxisAlignment.end
-                                    : CrossAxisAlignment.start,
+                          if (message is TextMessage) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              child: Row(
+                                mainAxisAlignment: isSentByMe
+                                    ? MainAxisAlignment.end
+                                    : MainAxisAlignment.start,
                                 children: [
-                                  if (!isSentByMe)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Text(
-                                        message.sender?.name ?? "Unknown",
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 17,
-                                        ),
-                                      ),
-                                    ),
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: isSentByMe
-                                          ? Colors.blueAccent
-                                          : Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                  Flexible(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment: isSentByMe
+                                          ? CrossAxisAlignment.end
+                                          : CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          message.text,
-                                          style: TextStyle(
-                                            color: isSentByMe
-                                                ? Colors.white
-                                                : Colors.black,
+                                        if (!isSentByMe)
+                                          Padding(
+                                            padding: const EdgeInsets.only(bottom: 4),
+                                            child: Text(
+                                              message.sender?.name ?? "Unknown",
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 17,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          formatTimeOnly(message.sentAt),
-                                          style: TextStyle(
-                                            fontSize: 10,
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
                                             color: isSentByMe
-                                                ? Colors.white70
-                                                : Colors.black54,
+                                                ? Colors.blueAccent
+                                                : Colors.grey[300],
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                message.text,
+                                                style: TextStyle(
+                                                  color: isSentByMe
+                                                      ? Colors.white
+                                                      : Colors.black,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 5),
+                                              Text(
+                                                formatTimeOnly(message.sentAt),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: isSentByMe
+                                                      ? Colors.white70
+                                                      : Colors.black54,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
@@ -209,52 +268,65 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else if (message is cometchat.Action) {
-                      final actionType = message.action?.toLowerCase();
-                      if (actionType == "leave" ||
-                          actionType == "kick" ||
-                          actionType == "ban") {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 5),
-                            child: Text(
-                              "⚠️ ${message.message}",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                        );
-                      } else {
-                        return const SizedBox();
-                      }
-                    }
+                            );
+                          } else if (message is cometchat.Action) {
+                            final actionType = message.action?.toLowerCase();
+                            if (actionType == "leave" ||
+                                actionType == "kick" ||
+                                actionType == "ban") {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 5),
+                                  child: Text(
+                                    "⚠️ ${message.message}",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return const SizedBox();
+                            }
+                          }
 
-                    return const SizedBox();
-                  },
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(hintText: "Type a message..."),
+                          return const SizedBox();
+                        },
+                      );
+                    },
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Colors.blue),
-                  onPressed: sendMessage,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: const InputDecoration(hintText: "Type a message..."),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send, color: Colors.blue),
+                      onPressed: sendMessage,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+
+          // 🔽 Scroll-to-bottom button
+          if (_showScrollDownButton)
+            Positioned(
+              bottom: 80,
+              right: 16,
+              child: FloatingActionButton(
+                mini: true,
+                backgroundColor: Colors.green,
+                child: const Icon(Icons.arrow_downward),
+                onPressed: _scrollToBottom,
+              ),
+            ),
         ],
       ),
     );
