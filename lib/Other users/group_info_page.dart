@@ -56,6 +56,13 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
 
       request.fetchNext(
         onSuccess: (List<GroupMember> members) {
+          // Sort so that admins come first
+          members.sort((a, b) {
+            if (a.scope == 'admin' && b.scope != 'admin') return -1;
+            if (a.scope != 'admin' && b.scope == 'admin') return 1;
+            return 0;
+          });
+
           setState(() {
             groupMembers = members;
           });
@@ -68,6 +75,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       debugPrint("❌ Exception while fetching group members: $e");
     }
   }
+
 
   Future<void> fetchCurrentUser() async {
     currentUser = await CometChat.getLoggedInUser();
@@ -216,11 +224,11 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
                     child: Text(member.name.substring(0, 1).toUpperCase()),
                   ),
                   title: Text(displayName),
-
                   trailing: Text(member.scope ?? "member"),
                 );
               },
             ),
+
 
           ],
         ),
