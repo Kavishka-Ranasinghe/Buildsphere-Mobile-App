@@ -129,17 +129,12 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 1000),
-            curve: Curves.easeOut,
-          );
-        }
-      });
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+      }
     });
   }
+
 
   @override
   void onTextMessageReceived(TextMessage textMessage) {
