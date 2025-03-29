@@ -43,7 +43,7 @@ class _AppDrawerState extends State<AppDrawer> {
   void _incrementTapCount() {
     setState(() {
       _tapCount++;
-      if (_tapCount >= 7) {
+      if (_tapCount >= 3) {
         _tapCount = 0;
         Navigator.pop(context);
         Navigator.push(
