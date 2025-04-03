@@ -7,6 +7,8 @@ import 'Admin/admin_dash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cometchat_sdk/cometchat_sdk.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'no_internet_screen.dart'; // ⬅️ Make sure this file exists
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,11 +24,26 @@ class _LoginPageState extends State<LoginPage> {
   final String adminEmail = "Buildsphere@gmail.com";
   final String adminPassword = "password";
   bool _checkingAuth = true;
+  bool _isConnected = true;
 
   @override
   void initState() {
     super.initState();
+    _checkInternet();
     _checkIfUserIsLoggedIn();
+  }
+
+  Future<void> _checkInternet() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isConnected = connectivityResult != ConnectivityResult.none;
+    });
+
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+      });
+    });
   }
 
   Future<void> _checkIfUserIsLoggedIn() async {
@@ -198,6 +215,10 @@ class _LoginPageState extends State<LoginPage> {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
+    }
+
+    if (!_isConnected) {
+      return const NoInternetScreen(); // ⬅️ Shows this when there's no connection
     }
 
     bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;

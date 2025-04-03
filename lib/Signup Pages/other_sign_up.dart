@@ -1,14 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../login.dart'; // Import the LoginPage
-import 'hardware_shop_owner_signup.dart'; // Import the HardwareShopOwnerSignUpPage
+import '../login.dart';
+import 'hardware_shop_owner_signup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Other users/room_section.dart';
-import 'package:cometchat_sdk/cometchat_sdk.dart'as comet_chat;
+import 'package:cometchat_sdk/cometchat_sdk.dart' as comet_chat;
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cometchat_sdk/cometchat_sdk.dart';
-
-
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../no_internet_screen.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -28,12 +28,32 @@ class _SignUpPageState extends State<SignUpPage> {
 
   final _formKey = GlobalKey<FormState>();
 
-  // Error messages
   String? _nameError;
   String? _roleError;
   String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
+
+  bool _isConnected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInternet();
+  }
+
+  Future<void> _checkInternet() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isConnected = connectivityResult != ConnectivityResult.none;
+    });
+
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+      });
+    });
+  }
 
   void _showSignUpSuccessDialog() {
     showDialog(
@@ -45,11 +65,11 @@ class _SignUpPageState extends State<SignUpPage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const room_section()),
-                ); // Navigate to Chat Section
+                );
               },
               child: const Text('OK'),
             ),
@@ -69,11 +89,11 @@ class _SignUpPageState extends State<SignUpPage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
-                ); // Navigate to LoginPage
+                );
               },
               child: const Text('OK'),
             ),
@@ -84,40 +104,29 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   bool _validateEmail(String email) {
-    final RegExp emailRegex = RegExp(
-        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final RegExp emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     return emailRegex.hasMatch(email);
   }
 
   Future<void> cometChatLogin() async {
-    String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e"; // Your CometChat Auth Key
+    String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e";
 
-    // ✅ Get Firebase user details
     firebase_auth.User? firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-
-    if (firebaseUser == null) {
-      print("❌ Firebase user is null!");
-      return;
-    }
+    if (firebaseUser == null) return;
 
     String uid = firebaseUser.uid;
     String name = firebaseUser.displayName ?? "Anonymous User";
 
-    // ✅ Create CometChat User (if not exists)
-    comet_chat.User user = comet_chat.User(
-      uid: uid,
-      name: name,
-    );
+    comet_chat.User user = comet_chat.User(uid: uid, name: name);
 
     await CometChat.createUser(user, authKey,
         onSuccess: (comet_chat.User createdUser) {
           print("✅ CometChat user created successfully: ${createdUser.uid}");
         },
         onError: (CometChatException e) {
-          print("⚠️ CometChat user already exists or error: ${e.message}");
+          print("⚠️ CometChat user may already exist or error: ${e.message}");
         });
 
-    // ✅ Login User into CometChat
     await CometChat.login(uid, authKey,
         onSuccess: (comet_chat.User loggedInUser) {
           print("✅ CometChat login successful: ${loggedInUser.uid}");
@@ -127,13 +136,10 @@ class _SignUpPageState extends State<SignUpPage> {
         });
   }
 
-
-
-
   Future<void> _signUpWithFirebase() async {
     try {
-      // Create user in Firebase Authentication
-      firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
+      firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -141,7 +147,6 @@ class _SignUpPageState extends State<SignUpPage> {
       firebase_auth.User? user = userCredential.user;
 
       if (user != null) {
-        // Save user details in Firestore
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
@@ -152,12 +157,11 @@ class _SignUpPageState extends State<SignUpPage> {
         await user.updateDisplayName(_nameController.text.trim());
         await user.reload();
 
-        // ✅ Check if user role is Client, Engineer, or Planner → then authenticate with CometChat
         if (_selectedRole == 'Client' || _selectedRole == 'Engineer' || _selectedRole == 'Planner') {
           await cometChatLogin();
-          _showSignUpSuccessDialog(); // Navigates to `room_section`
+          _showSignUpSuccessDialog();
         } else {
-          _waitapproval(); // Navigates to `LoginPage` (for Hardware Shop Owners)
+          _waitapproval();
         }
       }
     } on firebase_auth.FirebaseAuthException catch (e) {
@@ -172,7 +176,6 @@ class _SignUpPageState extends State<SignUpPage> {
       });
     }
   }
-
 
   void _validateInputs() {
     setState(() {
@@ -201,48 +204,41 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isConnected) {
+      return const NoInternetScreen();
+    }
+
     bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/sign-up.jpeg', // Use the same background image
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/images/sign-up.jpeg', fit: BoxFit.cover),
           ),
-
-          // Blur effect overlay
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: Colors.black.withOpacity(0.2), // Adds a subtle dark overlay
-              ),
+              child: Container(color: Colors.black.withOpacity(0.2)),
             ),
           ),
-
-          // "Buildsphere" text
           if (!isKeyboardOpen)
-          Positioned(
-            top:30,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Text(
-                "Buildsphere",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.yellow.shade600, // Yellow font color
-                  letterSpacing: 1.5,
+            Positioned(
+              top: 30,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  "Buildsphere",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.yellow.shade600,
+                    letterSpacing: 1.5,
+                  ),
                 ),
               ),
             ),
-          ),
-
-          // Signup form
           Center(
             child: SingleChildScrollView(
               child: Padding(
@@ -258,52 +254,35 @@ class _SignUpPageState extends State<SignUpPage> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        const Text(
-                          "Sign Up",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
+                        const Text("Sign Up",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            )),
                         const SizedBox(height: 20),
-
                         _buildInputField("Name", _nameController, _nameError),
                         const SizedBox(height: 15),
-
                         _buildDropdownField("Select Role", _roles, _selectedRole, (value) {
                           setState(() {
                             _selectedRole = value;
                           });
                         }, _roleError),
                         const SizedBox(height: 15),
-
                         _buildInputField("Email", _emailController, _emailError),
                         const SizedBox(height: 15),
-
                         _buildInputField("Password", _passwordController, _passwordError, isPassword: true),
-
                         const SizedBox(height: 15),
-
                         _buildInputField("Confirm Password", _confirmPasswordController, _confirmPasswordError, isPassword: true),
                         const SizedBox(height: 20),
-
                         _buildButton("Sign Up", _validateInputs),
                         const SizedBox(height: 15),
-
                         _buildButton("Login Page", () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginPage()),
-                          );
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
                         }),
                         const SizedBox(height: 15),
-
                         _buildButton("Register as Hardware-Shop Owner", () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const HardwareShopOwnerSignUpPage()),
-                          );
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const HardwareShopOwnerSignUpPage()));
                         }),
                       ],
                     ),
@@ -325,7 +304,7 @@ class _SignUpPageState extends State<SignUpPage> {
           Text(error, style: const TextStyle(color: Colors.red)),
         TextFormField(
           controller: controller,
-          obscureText: false,
+          obscureText: isPassword,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             labelText: label,

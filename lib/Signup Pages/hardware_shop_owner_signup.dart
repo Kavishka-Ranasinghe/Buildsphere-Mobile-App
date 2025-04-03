@@ -4,6 +4,8 @@ import '../login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Hardware Shop Owner/hso_home.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../no_internet_screen.dart'; // ⬅️ Make sure this exists
 
 class HardwareShopOwnerSignUpPage extends StatefulWidget {
   const HardwareShopOwnerSignUpPage({super.key});
@@ -22,7 +24,6 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
 
   final _formKey = GlobalKey<FormState>();
 
-  // Error messages
   String? _shopNameError;
   String? _shopEmailError;
   String? _shopAddressError;
@@ -30,22 +31,42 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
   String? _shopPasswordError;
   String? _shopConfirmPasswordError;
 
-  // This dialog mimics the "waiting for approval" behavior seen in the other signup page.
+  bool _isConnected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInternet();
+  }
+
+  Future<void> _checkInternet() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isConnected = connectivityResult != ConnectivityResult.none;
+    });
+
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+      });
+    });
+  }
+
   void _showSignUpSuccessDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Yeah!!! 🎉'),
-          content: const Text('Sign-up successful!,You will be redirected to seller home page.'),
+          content: const Text('Sign-up successful! You will be redirected to seller home page.'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
-                ); // Navigate to LoginPage
+                );
               },
               child: const Text('OK'),
             ),
@@ -54,21 +75,22 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
       },
     );
   }
+
   void _waitapproval() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Waiting'),
-          content: const Text('Wait for approval, Give us few Seconds please.'),
+          content: const Text('Wait for approval, Give us few seconds please.'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginPage()),
-                ); // Navigate to LoginPage
+                );
               },
               child: const Text('OK'),
             ),
@@ -86,9 +108,7 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
 
   void _signUpWithFirebase() async {
     try {
-      // Create user in Firebase Authentication using shop email and password
-      UserCredential userCredential =
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _shopEmailController.text.trim(),
         password: _shopPasswordController.text.trim(),
       );
@@ -96,7 +116,6 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
       User? user = userCredential.user;
 
       if (user != null) {
-        // Save shop details in Firestore along with role "Hardware Shop Owner"
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'shopName': _shopNameController.text.trim(),
           'email': _shopEmailController.text.trim(),
@@ -106,11 +125,9 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
           'createdAt': Timestamp.now(),
         });
 
-        // Update display name with shop name
         await user.updateDisplayName(_shopNameController.text.trim());
         await user.reload();
 
-        // Instead of showing a success message that immediately redirects, we now show the waiting dialog
         _showSignUpSuccessDialog();
       }
     } on FirebaseAuthException catch (e) {
@@ -135,11 +152,9 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
       _shopAddressError = _shopAddressController.text.isEmpty ? 'Shop Address is required' : null;
       _shopPhoneError = _shopPhoneController.text.isEmpty ? 'Telephone Number is required' : null;
       _shopPasswordError = _shopPasswordController.text.length < 6
-          ? 'Password must be at least 6 characters'
-          : null;
+          ? 'Password must be at least 6 characters' : null;
       _shopConfirmPasswordError = _shopConfirmPasswordController.text != _shopPasswordController.text
-          ? 'Passwords do not match'
-          : null;
+          ? 'Passwords do not match' : null;
     });
 
     if (_shopNameError == null &&
@@ -155,26 +170,22 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
 
   @override
   Widget build(BuildContext context) {
+    if (!_isConnected) {
+      return const NoInternetScreen(); // ⬅️ Show when offline
+    }
+
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/sign-up.jpeg',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/images/sign-up.jpeg', fit: BoxFit.cover),
           ),
-          // Blur effect overlay
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: Colors.black.withOpacity(0.2),
-              ),
+              child: Container(color: Colors.black.withOpacity(0.2)),
             ),
           ),
-          // Form content
           Center(
             child: SingleChildScrollView(
               child: Padding(
@@ -192,11 +203,7 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
                       children: [
                         const Text(
                           "Hardware Shop Registration",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                         ),
                         const SizedBox(height: 20),
                         _buildInputField("Shop Name", _shopNameController, _shopNameError),
@@ -214,15 +221,10 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
                         const SizedBox(height: 20),
                         _buildButton("Sign Up", _validateInputs),
                         const SizedBox(height: 15),
-                        _buildButton("Back to Other User Sign Up Page", () {
-                          Navigator.pop(context);
-                        }),
+                        _buildButton("Back to Other User Sign Up Page", () => Navigator.pop(context)),
                         const SizedBox(height: 15),
                         _buildButton("Login Page", () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginPage()),
-                          );
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
                         }),
                       ],
                     ),
@@ -245,7 +247,7 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
           Text(error, style: const TextStyle(color: Colors.red)),
         TextFormField(
           controller: controller,
-          obscureText: false,
+          obscureText: isPassword,
           keyboardType: keyboardType,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(

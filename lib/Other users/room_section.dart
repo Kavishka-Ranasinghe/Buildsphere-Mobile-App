@@ -1,15 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../no_internet_screen.dart';
 import 'profile.dart';
 import 'app_drawer.dart';
-import 'dashboard_item.dart';
 import 'join_room.dart';
 import 'create_room.dart';
 
-class room_section extends StatelessWidget {
+class room_section extends StatefulWidget {
   const room_section({super.key});
 
   @override
+  State<room_section> createState() => _room_sectionState();
+}
+
+class _room_sectionState extends State<room_section> {
+  bool _isConnected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInternet();
+  }
+
+  Future<void> _checkInternet() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isConnected = connectivityResult != ConnectivityResult.none;
+    });
+
+    // Optional: listen for future changes
+    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+      setState(() {
+        _isConnected = result != ConnectivityResult.none;
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return _isConnected ? _buildRoomSection(context) : const NoInternetScreen();
+  }
+
+  Widget _buildRoomSection(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -25,10 +57,9 @@ class room_section extends StatelessWidget {
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/modern.png', // Ensure this image is in your assets folder
+              'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
@@ -87,18 +118,12 @@ class room_section extends StatelessWidget {
                       label: 'Create Room',
                       color: Colors.blue,
                       onTap: () {
-                         Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const CreateRoom()),
-                         );
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const CreateRoom()),
                         );
-
                       },
                     ),
-
                   ],
                 ),
               ),
@@ -109,21 +134,26 @@ class room_section extends StatelessWidget {
     );
   }
 
-  Widget _buildSmallerCard({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+  Widget _buildSmallerCard({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        color: Colors.white.withOpacity(0.75), // Slightly faded effect
-        elevation: 4, // Softer shadow
+        color: Colors.white.withOpacity(0.75),
+        elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
         child: SizedBox(
-          height: 60, // Reduced height for a more compact look
+          height: 60,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 40, color: color), // Slightly smaller icon
+              Icon(icon, size: 40, color: color),
               const SizedBox(height: 5),
               Text(
                 label,
