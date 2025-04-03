@@ -1,11 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'Signup Pages/other_sign_up.dart'; // SignUpPage for navigation
-import 'Other users/room_section.dart'; // HomePage for normal users
-import 'Hardware Shop Owner/hso_home.dart'; // HardwareShopOwnerPage
-import 'Admin/admin_dash.dart'; // Admin Dashboard
+import 'Signup Pages/other_sign_up.dart';
+import 'Other users/room_section.dart';
+import 'Hardware Shop Owner/hso_home.dart';
+import 'Admin/admin_dash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 
@@ -19,13 +18,57 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  bool _obscurePassword = true; // Toggle password visibility
-
-  // Admin Credentials
+  bool _obscurePassword = true;
   final String adminEmail = "Buildsphere@gmail.com";
   final String adminPassword = "password";
+  bool _checkingAuth = true;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkIfUserIsLoggedIn();
+  }
 
+  Future<void> _checkIfUserIsLoggedIn() async {
+    final firebase_auth.User? user = firebase_auth.FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          String userRole = userDoc['role'];
+
+          if (userRole == 'Client' || userRole == 'Engineer' || userRole == 'Planner') {
+            await cometChatLogin();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const room_section()),
+            );
+          } else if (userRole == 'Hardware Shop Owner') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminPage()),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint("Auto-login check error: $e");
+      }
+    }
+
+    setState(() {
+      _checkingAuth = false;
+    });
+  }
 
   void _login() async {
     String email = emailController.text.trim();
@@ -38,7 +81,6 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    // Check if entered credentials match admin credentials
     if (email == adminEmail && password == adminPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login Successful")),
@@ -63,7 +105,6 @@ class _LoginPageState extends State<LoginPage> {
         );
         await Future.delayed(const Duration(seconds: 1));
 
-        // Fetch user role from Firestore
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -73,22 +114,17 @@ class _LoginPageState extends State<LoginPage> {
           String userRole = userDoc['role'];
 
           if (userRole == 'Client' || userRole == 'Engineer' || userRole == 'Planner') {
-            // ✅ Authenticate User with CometChat after Firebase Login
             await cometChatLogin();
-
-            // ✅ Navigate to Room Section after successful login
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const room_section()),
             );
           } else if (userRole == 'Hardware Shop Owner') {
-            // ❌ Hardware Shop Owners do not belong to CometChat → Skip CometChat login
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
             );
           } else {
-            // Handle other roles if needed or show an error
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Unknown user role")),
             );
@@ -105,47 +141,35 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
+
   Future<void> cometChatLogin() async {
-    String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e"; // Your CometChat Auth Key
+    String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e";
 
-    // ✅ Get Firebase user details
     firebase_auth.User? firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-
-    if (firebaseUser == null) {
-      print("❌ Firebase user is null!");
-      return;
-    }
+    if (firebaseUser == null) return;
 
     String uid = firebaseUser.uid;
     String name = firebaseUser.displayName ?? "Anonymous User";
 
-    // ✅ Create CometChat User (if not exists)
-    User user = User(
-      uid: uid,
-      name: name,
-    );
+    User user = User(uid: uid, name: name);
 
     await CometChat.createUser(user, authKey,
         onSuccess: (User createdUser) {
-          print("✅ CometChat user created successfully: ${createdUser.uid}");
+          print("✅ CometChat user created: ${createdUser.uid}");
         },
         onError: (CometChatException e) {
-          print("⚠️ CometChat user already exists or error: ${e.message}");
+          print("⚠️ CometChat create user error: ${e.message}");
         });
 
-    // ✅ Login User into CometChat
     await CometChat.login(uid, authKey,
         onSuccess: (User loggedInUser) {
-          print("✅ CometChat login successful: ${loggedInUser.uid}");
+          print("✅ CometChat login: ${loggedInUser.uid}");
         },
         onError: (CometChatException e) {
           print("❌ CometChat login failed: ${e.message}");
         });
   }
 
-
-
-  // Forgot Password Function
   void _forgotPassword() async {
     String email = emailController.text.trim();
 
@@ -170,30 +194,29 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingAuth) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/sign-up.jpeg', // Use the same background image
+              'assets/images/sign-up.jpeg',
               fit: BoxFit.cover,
             ),
           ),
-
-          // Blur effect overlay
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                color: Colors.black.withOpacity(0.5), // Adds a subtle dark overlay
-              ),
+              child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
-
-          // Buildsphere Text (Hides when keyboard is open)
           if (!isKeyboardOpen)
             Positioned(
               top: 70,
@@ -211,8 +234,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-
-          // Login Form
           Center(
             child: SingleChildScrollView(
               child: Padding(
@@ -235,8 +256,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
-                      // Email Input
                       TextField(
                         controller: emailController,
                         style: const TextStyle(color: Colors.white),
@@ -255,8 +274,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 15),
-
-                      // Password Input with Show Password Button
                       TextField(
                         controller: passwordController,
                         obscureText: _obscurePassword,
@@ -289,8 +306,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
-                      // Login Button
                       ElevatedButton(
                         onPressed: _login,
                         style: ElevatedButton.styleFrom(
@@ -300,8 +315,6 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Text('Login'),
                       ),
                       const SizedBox(height: 10),
-
-                      // Forgot Password
                       TextButton(
                         onPressed: _forgotPassword,
                         child: const Text(
@@ -309,8 +322,6 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
-
-                      // Sign Up Navigation
                       TextButton(
                         onPressed: () {
                           Navigator.push(
