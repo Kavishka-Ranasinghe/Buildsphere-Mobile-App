@@ -7,8 +7,11 @@ import 'package:intl/intl.dart';
 import 'group_info_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'pdf_viewer_page.dart';
-import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+
 
 class VideoPlayerView extends StatefulWidget {
   final String url;
@@ -22,16 +25,36 @@ class VideoPlayerView extends StatefulWidget {
 class _VideoPlayerViewState extends State<VideoPlayerView> {
   late VideoPlayerController _controller;
   bool _isPlaying = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.network(widget.url)
-      ..initialize().then((_) {
-        setState(() {});
-      });
+    _loadVideo();
   }
 
+  Future<void> _loadVideo() async {
+    try {
+      final filename = path.basename(widget.url);
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$filename');
+
+      if (await file.exists()) {
+        // ✅ Use cached file
+        _controller = VideoPlayerController.file(file);
+      } else {
+        // ⬇️ Download and cache
+        final response = await http.get(Uri.parse(widget.url));
+        await file.writeAsBytes(response.bodyBytes);
+        _controller = VideoPlayerController.file(file);
+      }
+
+      await _controller.initialize();
+      setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint("⚠️ Error loading video: $e");
+    }
+  }
   @override
   void dispose() {
     _controller.dispose();
@@ -61,31 +84,67 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
     final newPosition = current - const Duration(seconds: 5);
     _controller.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
   }
+  Widget _buildVideoPlayer() {
+    final Size videoSize = _controller.value.size;
+    final double aspectRatio = _controller.value.aspectRatio;
+
+    // Limit height and width within the screen bounds
+    final double maxWidth = MediaQuery.of(context).size.width;
+    final double maxHeight = MediaQuery.of(context).size.height * 0.9;
+
+    double displayWidth = maxWidth;
+    double displayHeight = displayWidth / aspectRatio;
+
+    if (displayHeight > maxHeight) {
+      displayHeight = maxHeight;
+      displayWidth = displayHeight * aspectRatio;
+    }
+
+    return Center(
+      child: Container(
+        width: displayWidth,
+        height: displayHeight,
+        child: AspectRatio(
+          aspectRatio: aspectRatio,
+          child: VideoPlayer(_controller),
+        ),
+      ),
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(backgroundColor: Colors.transparent),
-      body: Center(
-        child: _controller.value.isInitialized
-            ? Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: _isLoading || !_controller.value.isInitialized
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+        child: Column(
           children: [
-            AspectRatio(
-              aspectRatio: _controller.value.aspectRatio,
-              child: VideoPlayer(_controller),
-            ),
-            const SizedBox(height: 16),
-            VideoProgressIndicator(
-              _controller,
-              allowScrubbing: true,
-              colors: VideoProgressColors(
-                playedColor: Colors.blue,
-                bufferedColor: Colors.grey,
-                backgroundColor: Colors.white30,
+            // ✅ Make the video player flexible
+            Expanded(
+              child: Center(
+                child: _buildVideoPlayer(),
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 15, // 👈 Increase this value for a thicker progress bar
+              child: VideoProgressIndicator(
+                _controller,
+                allowScrubbing: true,
+                colors: VideoProgressColors(
+                  playedColor: Colors.blue,
+                  bufferedColor: Colors.grey,
+                  backgroundColor: Colors.white30,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+            ),
+
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -109,11 +168,12 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
                   onPressed: _skipForward,
                 ),
               ],
-            )
+            ),
+            const SizedBox(height: 16),
           ],
-        )
-            : const CircularProgressIndicator(),
+        ),
       ),
+
     );
   }
 }
@@ -318,6 +378,13 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     if (result != null && result.files.single.path != null) {
       String filePath = result.files.single.path!;
 
+      // ✅ Show uploading snackbar
+      final snackBar = SnackBar(
+        content: const Text("📤 Uploading media..."),
+        duration: const Duration(days: 1), // Keep it visible until manually closed
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
       MediaMessage mediaMessage = MediaMessage(
         receiverUid: widget.roomId,
         receiverType: CometChatReceiverType.group,
@@ -328,12 +395,28 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       CometChat.sendMediaMessage(
         mediaMessage,
         onSuccess: (BaseMessage sentMessage) {
+          // ✅ Hide the uploading snackbar
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+          // ✅ Optionally show short success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("✅ Media uploaded"),
+              duration: Duration(seconds: 2), // Auto-close after 2 seconds
+            ),
+          );
+
           setState(() {
             messages.insert(0, sentMessage);
           });
           _scrollToBottom();
         },
+
         onError: (CometChatException e) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar(); // ✅ Hide snack
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("❌ Upload failed: ${e.message}")),
+          );
           debugPrint("❌ Failed to send file: ${e.message}");
         },
       );

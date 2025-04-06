@@ -44,6 +44,7 @@ dependencies:
   url_launcher: ^6.3.1  # Version as of now; check for latest version
   path_provider: ^2.1.5
   cached_network_image: ^3.2.3
+  path: ^1.8.3
   file_picker: ^6.1.1
   open_file: ^3.3.2
   image: ^4.5.3
