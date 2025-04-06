@@ -7,6 +7,118 @@ import 'package:intl/intl.dart';
 import 'group_info_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'pdf_viewer_page.dart';
+import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
+
+class VideoPlayerView extends StatefulWidget {
+  final String url;
+
+  const VideoPlayerView({super.key, required this.url});
+
+  @override
+  State<VideoPlayerView> createState() => _VideoPlayerViewState();
+}
+
+class _VideoPlayerViewState extends State<VideoPlayerView> {
+  late VideoPlayerController _controller;
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.network(widget.url)
+      ..initialize().then((_) {
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _togglePlayback() {
+    setState(() {
+      _isPlaying = !_isPlaying;
+      _isPlaying ? _controller.play() : _controller.pause();
+    });
+  }
+
+  void _skipForward() {
+    final current = _controller.value.position;
+    final max = _controller.value.duration;
+    final newPosition = current + const Duration(seconds: 5);
+    if (newPosition < max) {
+      _controller.seekTo(newPosition);
+    } else {
+      _controller.seekTo(max);
+    }
+  }
+
+  void _skipBackward() {
+    final current = _controller.value.position;
+    final newPosition = current - const Duration(seconds: 5);
+    _controller.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.transparent),
+      body: Center(
+        child: _controller.value.isInitialized
+            ? Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AspectRatio(
+              aspectRatio: _controller.value.aspectRatio,
+              child: VideoPlayer(_controller),
+            ),
+            const SizedBox(height: 16),
+            VideoProgressIndicator(
+              _controller,
+              allowScrubbing: true,
+              colors: VideoProgressColors(
+                playedColor: Colors.blue,
+                bufferedColor: Colors.grey,
+                backgroundColor: Colors.white30,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.replay_5, size: 36, color: Colors.white),
+                  onPressed: _skipBackward,
+                ),
+                IconButton(
+                  icon: Icon(
+                    _controller.value.isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_fill,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                  onPressed: _togglePlayback,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.forward_5, size: 36, color: Colors.white),
+                  onPressed: _skipForward,
+                ),
+              ],
+            )
+          ],
+        )
+            : const CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+
 
 
 
@@ -381,6 +493,9 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   Widget _buildMediaMessage(MediaMessage message, bool isSentByMe) {
     final fileUrl = message.attachment?.fileUrl;
     final fileName = message.attachment?.fileName?.toLowerCase() ?? "";
+    final isVideo = fileName.endsWith(".mp4");
+    final isDoc = fileName.endsWith(".doc") || fileName.endsWith(".docx");
+    final isPpt = fileName.endsWith(".ppt") || fileName.endsWith(".pptx");
     final isImage = fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
         fileName.endsWith(".png") || fileName.endsWith(".gif");
 
@@ -402,23 +517,27 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () async {
-                    if (isImage && fileUrl != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FullScreenImageView(imageUrl: fileUrl),
-                        ),
-                      );
-                    } else if (fileUrl != null && fileName.endsWith(".pdf")) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
-                        ),
-                      );
-                    }
-                  },
+                onTap: () {
+                  if (isImage && fileUrl != null) {
+                    Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => FullScreenImageView(imageUrl: fileUrl),
+                    ));
+                  } else if (fileUrl != null && fileName.endsWith(".pdf")) {
+                    Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
+                    ));
+                  } else if (fileUrl != null && isVideo) {
+                    Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => VideoPlayerView(url: fileUrl),
+                    ));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Preview not available for this file")),
+                    );
+                  }
+                },
+
+
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
