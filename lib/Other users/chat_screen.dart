@@ -1,4 +1,4 @@
-// going to update for better_player
+//  better_player included
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:better_player/better_player.dart';
 
 
 class VideoPlayerView extends StatefulWidget {
@@ -24,157 +25,92 @@ class VideoPlayerView extends StatefulWidget {
 }
 
 class _VideoPlayerViewState extends State<VideoPlayerView> {
-  late VideoPlayerController _controller;
-  bool _isPlaying = false;
+  BetterPlayerController? _betterPlayerController;
   bool _isLoading = true;
+
 
   @override
   void initState() {
     super.initState();
-    _loadVideo();
+    _setupBetterPlayer();
   }
 
-  Future<void> _loadVideo() async {
+  Future<void> _setupBetterPlayer() async {
     try {
       final filename = path.basename(widget.url);
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$filename');
 
-      if (await file.exists()) {
-        // ✅ Use cached file
-        _controller = VideoPlayerController.file(file);
-      } else {
-        // ⬇️ Download and cache
+      if (!await file.exists()) {
         final response = await http.get(Uri.parse(widget.url));
         await file.writeAsBytes(response.bodyBytes);
-        _controller = VideoPlayerController.file(file);
       }
 
-      await _controller.initialize();
+      final fileSource = BetterPlayerDataSource(
+        BetterPlayerDataSourceType.file,
+        file.path,
+      );
+
+      _betterPlayerController = BetterPlayerController(
+        const BetterPlayerConfiguration(
+          autoPlay: false,
+          aspectRatio: 16 / 9,
+          fit: BoxFit.contain,
+          controlsConfiguration: BetterPlayerControlsConfiguration(
+            enableFullscreen: true,
+            enableSkips: true,
+          ),
+        ),
+        betterPlayerDataSource: fileSource,
+      );
+
+
       setState(() => _isLoading = false);
     } catch (e) {
-      debugPrint("⚠️ Error loading video: $e");
+      debugPrint("⚠️ Error setting up better player: $e");
     }
   }
+
   @override
   void dispose() {
-    _controller.dispose();
+    _betterPlayerController?.dispose();
     super.dispose();
   }
 
-  void _togglePlayback() {
-    setState(() {
-      _isPlaying = !_isPlaying;
-      _isPlaying ? _controller.play() : _controller.pause();
-    });
-  }
 
-  void _skipForward() {
-    final current = _controller.value.position;
-    final max = _controller.value.duration;
-    final newPosition = current + const Duration(seconds: 5);
-    if (newPosition < max) {
-      _controller.seekTo(newPosition);
-    } else {
-      _controller.seekTo(max);
-    }
-  }
-
-  void _skipBackward() {
-    final current = _controller.value.position;
-    final newPosition = current - const Duration(seconds: 5);
-    _controller.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
-  }
-  Widget _buildVideoPlayer() {
-    final Size videoSize = _controller.value.size;
-    final double aspectRatio = _controller.value.aspectRatio;
-
-    // Limit height and width within the screen bounds
-    final double maxWidth = MediaQuery.of(context).size.width;
-    final double maxHeight = MediaQuery.of(context).size.height * 0.9;
-
-    double displayWidth = maxWidth;
-    double displayHeight = displayWidth / aspectRatio;
-
-    if (displayHeight > maxHeight) {
-      displayHeight = maxHeight;
-      displayWidth = displayHeight * aspectRatio;
-    }
-
-    return Center(
-      child: Container(
-        width: displayWidth,
-        height: displayHeight,
-        child: AspectRatio(
-          aspectRatio: aspectRatio,
-          child: VideoPlayer(_controller),
-        ),
-      ),
-    );
-  }
 
 
 
   @override
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.transparent),
-      body: _isLoading || !_controller.value.isInitialized
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-        child: Column(
-          children: [
-            // ✅ Make the video player flexible
-            Expanded(
-              child: Center(
-                child: _buildVideoPlayer(),
-              ),
+      body: Stack(
+        children: [
+          // ✅ Center video content
+          Center(
+            child: _isLoading
+                ? const CircularProgressIndicator()
+                : AspectRatio(
+              aspectRatio: 16 / 9,
+              child: BetterPlayer(controller: _betterPlayerController!),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 15, // 👈 Increase this value for a thicker progress bar
-              child: VideoProgressIndicator(
-                _controller,
-                allowScrubbing: true,
-                colors: VideoProgressColors(
-                  playedColor: Colors.blue,
-                  bufferedColor: Colors.grey,
-                  backgroundColor: Colors.white30,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-              ),
-            ),
+          ),
 
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.replay_5, size: 36, color: Colors.white),
-                  onPressed: _skipBackward,
-                ),
-                IconButton(
-                  icon: Icon(
-                    _controller.value.isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_fill,
-                    color: Colors.white,
-                    size: 48,
-                  ),
-                  onPressed: _togglePlayback,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.forward_5, size: 36, color: Colors.white),
-                  onPressed: _skipForward,
-                ),
-              ],
+          // ✅ Back button (top-left)
+          Positioned(
+            top: 20,
+            left: 10,
+            child: SafeArea(
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, size: 28, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          ),
+        ],
       ),
-
     );
   }
 }
