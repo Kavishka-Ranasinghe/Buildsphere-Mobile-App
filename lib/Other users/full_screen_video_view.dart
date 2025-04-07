@@ -41,15 +41,22 @@ class _FullScreenVideoViewState extends State<FullScreenVideoView> {
 
       await _controller.initialize();
 
-      // 👇 Print the aspect ratio and resolution
-      debugPrint("📐 Aspect Ratio: ${_controller.value.aspectRatio}");
-      debugPrint("📏 Video Size: ${_controller.value.size}");
+      // ✅ Wait for one frame to get real size from the renderer
+      await Future.delayed(const Duration(milliseconds: 50));
+      final resolution = _controller.value.size;
+      final aspect = _controller.value.aspectRatio;
 
-      setState(() => _isLoading = false);
+      debugPrint("✅ Accurate Video Size: ${resolution.width.toInt()} x ${resolution.height.toInt()}");
+      debugPrint("✅ Actual Aspect Ratio: $aspect");
+
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       debugPrint("⚠️ Error loading video: $e");
     }
   }
+
 
 
   @override
@@ -79,45 +86,31 @@ class _FullScreenVideoViewState extends State<FullScreenVideoView> {
   }
 
   Widget _buildVideo() {
-    final videoSize = _controller.value.size;
-    final aspectRatio = _controller.value.aspectRatio;
+    final Size videoSize = _controller.value.size;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Determine if it's portrait based on aspect ratio (less than 1 means vertical)
-    final isPortrait = aspectRatio < 1.8;
+    final double videoWidth = videoSize.width;
+    final double videoHeight = videoSize.height;
 
-    if (isPortrait) {
-      // 🧍 For portrait videos, fill screen width and calculate height based on ratio
-      final double height = screenWidth / aspectRatio;
+    final bool isPortrait = videoHeight > videoWidth;
 
-      return Center(
-        child: SizedBox(
-          width: screenWidth,
-          height: height > screenHeight ? screenHeight : height,
-          child: AspectRatio(
-            aspectRatio: aspectRatio,
-            child: VideoPlayer(_controller),
-          ),
-        ),
-      );
-    } else {
-      // 🖼️ For landscape videos, use FittedBox for natural scaling
-      return Center(
-        child: FittedBox(
-          fit: BoxFit.contain,
-          child: SizedBox(
-            width: videoSize.width,
-            height: videoSize.height,
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
-              child: VideoPlayer(_controller),
-            ),
-          ),
-        ),
-      );
-    }
+    debugPrint("📏 Detected Size: $videoWidth x $videoHeight → ${isPortrait ? "Portrait" : "Landscape"}");
+
+    // Fit video within screen, preserving original ratio
+    final double displayWidth = screenWidth;
+    final double displayHeight = (videoHeight / videoWidth) * displayWidth;
+
+    return Center(
+      child: SizedBox(
+        width: displayWidth,
+        height: displayHeight > screenHeight ? screenHeight : displayHeight,
+        child: VideoPlayer(_controller),
+      ),
+    );
   }
+
+
 
 
 
@@ -130,57 +123,76 @@ class _FullScreenVideoViewState extends State<FullScreenVideoView> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(backgroundColor: Colors.transparent),
-      body: _isLoading || !_controller.value.isInitialized
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          _buildVideo(),
-
-          // Controls
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 18, // Bigger progress bar
-                child: VideoProgressIndicator(
-                  _controller,
-                  allowScrubbing: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  colors: const VideoProgressColors(
-                    playedColor: Colors.blue,
-                    bufferedColor: Colors.grey,
-                    backgroundColor: Colors.white30,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        body: Stack(
+          children: [
+            // Video or Loading
+            Positioned.fill(
+              child: _isLoading || !_controller.value.isInitialized
+                  ? const Center(child: CircularProgressIndicator())
+                  : Stack(
+                alignment: Alignment.bottomCenter,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.replay_5, size: 36, color: Colors.white),
-                    onPressed: _skipBackward,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                      size: 48,
-                      color: Colors.white,
-                    ),
-                    onPressed: _togglePlayback,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.forward_5, size: 36, color: Colors.white),
-                    onPressed: _skipForward,
+                  _buildVideo(),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        height: 18,
+                        child: VideoProgressIndicator(
+                          _controller,
+                          allowScrubbing: true,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          colors: const VideoProgressColors(
+                            playedColor: Colors.blue,
+                            bufferedColor: Colors.grey,
+                            backgroundColor: Colors.white30,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.replay_5, size: 36, color: Colors.white),
+                            onPressed: _skipBackward,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                              size: 48,
+                              color: Colors.white,
+                            ),
+                            onPressed: _togglePlayback,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.forward_5, size: 36, color: Colors.white),
+                            onPressed: _skipForward,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ],
-      ),
+            ),
+
+            // 👈 Always visible back button (top-left corner)
+            Positioned(
+              top: 20,
+              left: 10,
+              child: SafeArea(
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
     );
   }
 }
