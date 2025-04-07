@@ -11,8 +11,6 @@ import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'full_screen_video_view.dart';
-
 
 
 class VideoPlayerView extends StatefulWidget {
@@ -613,9 +611,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                     ));
                   } else if (fileUrl != null && isVideo) {
                     Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => FullScreenVideoView(url: fileUrl),
+                    builder: (_) => VideoPlayerView(url: fileUrl),
                     ));
-
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Preview not available for this file")),
