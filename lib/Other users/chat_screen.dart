@@ -158,6 +158,51 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   bool _showScrollDownButton = false;
   bool _isLoadingOldMessages = false;
 
+  void _onLongPressMessage(BuildContext context, BaseMessage message) async {
+    final loggedInUser = await CometChat.getLoggedInUser();
+    final isSender = message.sender?.uid == loggedInUser?.uid;
+
+    // Optional: you can check admin from group members API if needed
+    if (isSender) {
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => ListTile(
+          leading: const Icon(Icons.delete),
+          title: const Text('Delete Message'),
+          onTap: () {
+            Navigator.pop(context);
+            _deleteMessage(message);
+          },
+        ),
+      );
+    }
+  }
+
+  void _deleteMessage(BaseMessage message) async {
+    try {
+      await CometChat.deleteMessage(
+        message.id!,
+        onSuccess: (_) {
+          setState(() {
+            messages.removeWhere((m) => m.id == message.id);
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("🗑️ Message deleted")),
+          );
+        },
+        onError: (e) {
+          debugPrint("❌ Failed to delete message: ${e.message}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("❌ Error: ${e.message}")),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint("❌ Exception while deleting: $e");
+    }
+  }
+
 
   @override
   void initState() {
@@ -317,7 +362,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
       // ✅ Show uploading snackbar
       final snackBar = SnackBar(
-        content: const Text("📤 Uploading media..."),
+        content: const Text("📤 Uploading media please wait :)..."),
         duration: const Duration(days: 1), // Keep it visible until manually closed
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -460,53 +505,57 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   }
 
   Widget _buildTextMessage(TextMessage message, bool isSentByMe) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Row(
-        mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                // ✅ Show "you" if it's your message
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+    return GestureDetector(
+      onLongPress: () => _onLongPressMessage(context, message),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  // ✅ Show "you" if it's your message
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isSentByMe ? Colors.blueAccent : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        message.text,
-                        style: TextStyle(color: isSentByMe ? Colors.white : Colors.black),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        formatTimeOnly(message.sentAt),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isSentByMe ? Colors.white70 : Colors.black54,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isSentByMe ? Colors.blueAccent : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          message.text,
+                          style: TextStyle(color: isSentByMe ? Colors.white : Colors.black),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 5),
+                        Text(
+                          formatTimeOnly(message.sentAt),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isSentByMe ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+
   }
 
 
@@ -519,96 +568,100 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     final isImage = fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
         fileName.endsWith(".png") || fileName.endsWith(".gif");
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Row(
-        mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                // ✅ Sender name or "you"
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                GestureDetector(
-                onTap: () {
-                  if (isImage && fileUrl != null) {
-                    Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => FullScreenImageView(imageUrl: fileUrl),
-                    ));
-                  } else if (fileUrl != null && fileName.endsWith(".pdf")) {
-                    Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
-                    ));
-                  } else if (fileUrl != null && isVideo) {
-                    Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => VideoPlayerView(url: fileUrl),
-                    ));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Preview not available for this file")),
-                    );
-                  }
-                },
-
-
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isSentByMe ? Colors.blueAccent : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onLongPress: () => _onLongPressMessage(context, message),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  // ✅ Sender name or "you"
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    child: isImage && fileUrl != null
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: fileUrl,
-                        width: 180,
-                        height: 180,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                        const CircularProgressIndicator(),
-                        errorWidget: (context, url, error) =>
-                        const Icon(Icons.broken_image),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      if (isImage && fileUrl != null) {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => FullScreenImageView(imageUrl: fileUrl),
+                        ));
+                      } else if (fileUrl != null && fileName.endsWith(".pdf")) {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
+                        ));
+                      } else if (fileUrl != null && isVideo) {
+                        Navigator.push(context, MaterialPageRoute(
+                          builder: (_) => VideoPlayerView(url: fileUrl),
+                        ));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Preview not available for this file")),
+                        );
+                      }
+                    },
+
+
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSentByMe ? Colors.blueAccent : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    )
-                        : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.insert_drive_file,
-                          color: isSentByMe ? Colors.white : Colors.black,
+                      child: isImage && fileUrl != null
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: fileUrl,
+                          width: 180,
+                          height: 180,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                          const CircularProgressIndicator(),
+                          errorWidget: (context, url, error) =>
+                          const Icon(Icons.broken_image),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          fileName,
-                          style: TextStyle(
+                      )
+                          : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.insert_drive_file,
                             color: isSentByMe ? Colors.white : Colors.black,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Text(
+                            fileName,
+                            style: TextStyle(
+                              color: isSentByMe ? Colors.white : Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  formatTimeOnly(message.sentAt),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isSentByMe ? Colors.white70 : Colors.black54,
+                  Text(
+                    formatTimeOnly(message.sentAt),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isSentByMe ? Colors.white70 : Colors.black54,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+
   }
 
 
