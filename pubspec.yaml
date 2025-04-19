@@ -34,6 +34,7 @@ dependencies:
   connectivity_plus: ^5.0.1
   video_player: ^2.7.2
   firebase_auth: ^5.4.2
+  better_player: ^0.0.83
   cloud_firestore: ^5.5.0
   firebase_storage: ^12.1.1
   flutter_native_splash: ^2.0.5  # Version may vary
