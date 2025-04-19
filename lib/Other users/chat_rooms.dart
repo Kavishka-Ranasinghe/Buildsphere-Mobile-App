@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import '../no_internet_screen.dart';
 import 'app_drawer.dart';
 import 'chat_screen.dart';
 
@@ -17,38 +15,24 @@ class ChatRoomsScreen extends StatefulWidget {
 class _ChatRoomsScreenState extends State<ChatRoomsScreen> with MessageListener {
   List<Conversation> groupConversations = [];
   bool isLoading = true;
-  bool _isConnected = true;
   Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    _checkInternet();
     fetchUserChatRooms();
     CometChat.addMessageListener("room_listener", this);
 
+    // ⏱️ Auto-refresh every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       fetchUserChatRooms(forceUpdate: true);
-    });
-  }
-
-  Future<void> _checkInternet() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    setState(() {
-      _isConnected = connectivityResult != ConnectivityResult.none;
-    });
-
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-      setState(() {
-        _isConnected = result != ConnectivityResult.none;
-      });
     });
   }
 
   @override
   void dispose() {
     CometChat.removeMessageListener("room_listener");
-    _refreshTimer?.cancel();
+    _refreshTimer?.cancel(); // stop timer
     super.dispose();
   }
 
@@ -94,16 +78,12 @@ class _ChatRoomsScreenState extends State<ChatRoomsScreen> with MessageListener 
 
   String formatTime(int? timestamp) {
     if (timestamp == null) return "";
-    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp * 05);
     return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isConnected) {
-      return const NoInternetScreen(); // ✅ Show offline UI
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chat Rooms'),

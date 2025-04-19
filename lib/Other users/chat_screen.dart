@@ -12,9 +12,6 @@ import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:connectivity_plus/connectivity_plus.dart';
-import '../no_internet_screen.dart';
-
 
 
 class VideoPlayerView extends StatefulWidget {
@@ -35,7 +32,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
   void initState() {
     super.initState();
     _loadVideo();
-    _checkInternet();
   }
 
   Future<void> _loadVideo() async {
@@ -268,19 +264,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _messagesRequest = null;
     _scrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _checkInternet() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    setState(() {
-      _isConnected = connectivityResult != ConnectivityResult.none;
-    });
-
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
-      setState(() {
-        _isConnected = result != ConnectivityResult.none;
-      });
-    });
   }
 
 
