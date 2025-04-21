@@ -40,7 +40,6 @@ dependencies:
   shared_preferences: ^2.0.9  # Check for the latest version
   image_picker: ^0.8.7+3
   cometchat_sdk: ^4.0.19
-  cometchat: ^3.0.13
   cometchat_calls_sdk: ^4.0.11
   url_launcher: ^6.3.1  # Version as of now; check for latest version
   path_provider: ^2.1.5

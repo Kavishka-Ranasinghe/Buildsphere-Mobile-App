@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cometchat_sdk/models/action.dart' as cometchat;
+import 'package:cometchat_calls_sdk/cometchat_calls_sdk.dart'; // Added for calls
 import 'package:intl/intl.dart';
 import 'group_info_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,7 +13,6 @@ import 'package:video_player/video_player.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-
 
 class VideoPlayerView extends StatefulWidget {
   final String url;
@@ -41,10 +41,8 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
       final file = File('${dir.path}/$filename');
 
       if (await file.exists()) {
-        // ✅ Use cached file
         _controller = VideoPlayerController.file(file);
       } else {
-        // ⬇️ Download and cache
         final response = await http.get(Uri.parse(widget.url));
         await file.writeAsBytes(response.bodyBytes);
         _controller = VideoPlayerController.file(file);
@@ -56,6 +54,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
       debugPrint("⚠️ Error loading video: $e");
     }
   }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -85,11 +84,11 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
     final newPosition = current - const Duration(seconds: 5);
     _controller.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
   }
+
   Widget _buildVideoPlayer() {
     final Size videoSize = _controller.value.size;
     final double aspectRatio = _controller.value.aspectRatio;
 
-    // Limit height and width within the screen bounds
     final double maxWidth = MediaQuery.of(context).size.width;
     final double maxHeight = MediaQuery.of(context).size.height * 0.9;
 
@@ -113,8 +112,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,7 +122,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
           : SafeArea(
         child: Column(
           children: [
-            // ✅ Make the video player flexible
             Expanded(
               child: Center(
                 child: _buildVideoPlayer(),
@@ -133,7 +129,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 15, // 👈 Increase this value for a thicker progress bar
+              height: 15,
               child: VideoProgressIndicator(
                 _controller,
                 allowScrubbing: true,
@@ -145,7 +141,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
                 padding: const EdgeInsets.symmetric(horizontal: 10),
               ),
             ),
-
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -174,24 +169,10 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
           ],
         ),
       ),
-
     );
   }
 }
 
-
-
-
-
-class ChatScreen extends StatefulWidget {
-  final String roomId;
-  final String roomName;
-
-  const ChatScreen({super.key, required this.roomId, required this.roomName});
-
-  @override
-  _ChatScreenState createState() => _ChatScreenState();
-}
 class FullScreenImageView extends StatelessWidget {
   final String imageUrl;
 
@@ -214,6 +195,16 @@ class FullScreenImageView extends StatelessWidget {
   }
 }
 
+class ChatScreen extends StatefulWidget {
+  final String roomId;
+  final String roomName;
+
+  const ChatScreen({super.key, required this.roomId, required this.roomName});
+
+  @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
 class _ChatScreenState extends State<ChatScreen> with MessageListener {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -222,19 +213,18 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   bool _showScrollDownButton = false;
   bool _isLoadingOldMessages = false;
 
-
   @override
   void initState() {
     super.initState();
 
     _messagesRequest = (MessagesRequestBuilder()
       ..guid = widget.roomId
-      ..limit = 30).build();
+      ..limit = 30)
+        .build();
 
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
 
-      // Load older messages when near the top of reversed list
       if (_scrollController.offset >= _scrollController.position.maxScrollExtent - 100 &&
           !_isLoadingOldMessages) {
         loadOlderMessages();
@@ -242,7 +232,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
       const scrollThreshold = 200.0;
 
-      // ✅ Detect if user is away from bottom
       final isAtBottom = _scrollController.offset <= scrollThreshold;
 
       if (!isAtBottom && !_showScrollDownButton) {
@@ -251,8 +240,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         setState(() => _showScrollDownButton = false);
       }
     });
-
-
 
     fetchMessages();
     CometChat.addMessageListener("chat_listener", this);
@@ -265,7 +252,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _scrollController.dispose();
     super.dispose();
   }
-
 
   Future<void> fetchMessages() async {
     if (_messagesRequest == null) return;
@@ -311,7 +297,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     });
   }
 
-
   @override
   void onTextMessageReceived(TextMessage textMessage) {
     if (textMessage.receiverUid == widget.roomId) {
@@ -322,12 +307,12 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         messages.insert(0, textMessage);
       });
 
-
       if (isNearBottom) {
         _scrollToBottom();
       }
     }
   }
+
   @override
   void onMediaMessageReceived(MediaMessage mediaMessage) {
     if (mediaMessage.receiverUid == widget.roomId) {
@@ -338,13 +323,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         messages.insert(0, mediaMessage);
       });
 
-
       if (isNearBottom) {
         _scrollToBottom();
       }
     }
   }
-
 
   Future<void> sendMessage() async {
     String messageText = _messageController.text.trim();
@@ -366,7 +349,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         });
         _scrollToBottom();
       },
-
       onError: (CometChatException e) {
         debugPrint("❌ Message sending failed: ${e.message}");
       },
@@ -379,31 +361,27 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     if (result != null && result.files.single.path != null) {
       String filePath = result.files.single.path!;
 
-      // ✅ Show uploading snackbar
       final snackBar = SnackBar(
         content: const Text("📤 Uploading media..."),
-        duration: const Duration(days: 1), // Keep it visible until manually closed
+        duration: const Duration(days: 1),
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
       MediaMessage mediaMessage = MediaMessage(
         receiverUid: widget.roomId,
         receiverType: CometChatReceiverType.group,
-        file: filePath, // 🔥 fixed here
+        file: filePath,
         type: CometChatMessageType.file,
       );
 
       CometChat.sendMediaMessage(
         mediaMessage,
         onSuccess: (BaseMessage sentMessage) {
-          // ✅ Hide the uploading snackbar
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-          // ✅ Optionally show short success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("✅ Media uploaded"),
-              duration: Duration(seconds: 2), // Auto-close after 2 seconds
+              duration: Duration(seconds: 2),
             ),
           );
 
@@ -412,9 +390,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           });
           _scrollToBottom();
         },
-
         onError: (CometChatException e) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar(); // ✅ Hide snack
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("❌ Upload failed: ${e.message}")),
           );
@@ -424,28 +401,81 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     }
   }
 
+  // Step 1: Initiate a group call (audio or video)
+  Future<void> _startGroupCall(bool isVideoCall) async {
+    try {
+      // Create a Call object for the group
+      Call call = Call(
+        receiverUid: widget.roomId, // Use receiverUID instead of receiverId
+        receiverType: CometChatReceiverType.group,
+        type: isVideoCall ? "video" : "audio", // Use string "audio" or "video" for type
+      );
+
+      // Initiate the call using initiateCall (alternative to startCall)
+       CometChat.initiateCall(
+        call,
+        onSuccess: (Call? initiatedCall) {
+          debugPrint("Group call initiated: ${initiatedCall?.sessionId}");
+          // Navigate to the custom call UI
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomCallScreen(
+                sessionId: initiatedCall?.sessionId ?? '',
+                isVideoCall: isVideoCall,
+              ),
+            ),
+          );
+        },
+        onError: (CometChatException e) {
+          debugPrint("Group call initiation failed: ${e.message}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to start call: ${e.message}")),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint("Error initiating call: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error initiating call: $e")),
+      );
+    }
+  }
 
   String formatTimeOnly(DateTime? timestamp) {
     if (timestamp == null) return "";
     return DateFormat('h:mm a').format(timestamp.toLocal());
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => GroupInfoPage(groupId: widget.roomId),
-              ),
-            );
-          },
-          child: Text(widget.roomName),
+        title: Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupInfoPage(groupId: widget.roomId),
+                  ),
+                );
+              },
+              child: Text(widget.roomName),
+            ),
+            const SizedBox(width: 8), // Space between group name and buttons
+            IconButton(
+              icon: const Icon(Icons.call, size: 24),
+              onPressed: () => _startGroupCall(false), // Start audio call
+              tooltip: "Start Audio Call",
+            ),
+            IconButton(
+              icon: const Icon(Icons.videocam, size: 24),
+              onPressed: () => _startGroupCall(true), // Start video call
+              tooltip: "Start Video Call",
+            ),
+          ],
         ),
       ),
       body: Stack(
@@ -456,7 +486,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 60),
                   child: ListView.builder(
-                    reverse: true, // 👈 Important to show newest at bottom
+                    reverse: true,
                     controller: _scrollController,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
@@ -533,7 +563,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
             child: Column(
               crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                // ✅ Show "you" if it's your message
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
@@ -573,15 +602,16 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
-
   Widget _buildMediaMessage(MediaMessage message, bool isSentByMe) {
     final fileUrl = message.attachment?.fileUrl;
     final fileName = message.attachment?.fileName?.toLowerCase() ?? "";
     final isVideo = fileName.endsWith(".mp4");
     final isDoc = fileName.endsWith(".doc") || fileName.endsWith(".docx");
     final isPpt = fileName.endsWith(".ppt") || fileName.endsWith(".pptx");
-    final isImage = fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
-        fileName.endsWith(".png") || fileName.endsWith(".gif");
+    final isImage = fileName.endsWith(".jpg") ||
+        fileName.endsWith(".jpeg") ||
+        fileName.endsWith(".png") ||
+        fileName.endsWith(".gif");
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -592,7 +622,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
             child: Column(
               crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                // ✅ Sender name or "you"
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
@@ -601,27 +630,34 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                   ),
                 ),
                 GestureDetector(
-                onTap: () {
-                  if (isImage && fileUrl != null) {
-                    Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => FullScreenImageView(imageUrl: fileUrl),
-                    ));
-                  } else if (fileUrl != null && fileName.endsWith(".pdf")) {
-                    Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
-                    ));
-                  } else if (fileUrl != null && isVideo) {
-                    Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => VideoPlayerView(url: fileUrl),
-                    ));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Preview not available for this file")),
-                    );
-                  }
-                },
-
-
+                  onTap: () {
+                    if (isImage && fileUrl != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FullScreenImageView(imageUrl: fileUrl),
+                        ),
+                      );
+                    } else if (fileUrl != null && fileName.endsWith(".pdf")) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
+                        ),
+                      );
+                    } else if (fileUrl != null && isVideo) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VideoPlayerView(url: fileUrl),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Preview not available for this file")),
+                      );
+                    }
+                  },
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -636,10 +672,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                         width: 180,
                         height: 180,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                        const CircularProgressIndicator(),
-                        errorWidget: (context, url, error) =>
-                        const Icon(Icons.broken_image),
+                        placeholder: (context, url) => const CircularProgressIndicator(),
+                        errorWidget: (context, url, error) => const Icon(Icons.broken_image),
                       ),
                     )
                         : Row(
@@ -675,10 +709,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
-
-
-
-
   Widget _buildGroupAction(cometchat.Action message) {
     final actionType = message.action?.toLowerCase();
     if (actionType == "leave" || actionType == "kick" || actionType == "ban") {
@@ -690,5 +720,36 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       );
     }
     return const SizedBox();
+  }
+}
+
+// Temporary custom call screen for testing Step 1
+class CustomCallScreen extends StatelessWidget {
+  final String sessionId;
+  final bool isVideoCall;
+
+  const CustomCallScreen({
+    super.key,
+    required this.sessionId,
+    required this.isVideoCall,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isVideoCall ? "Group Video Call" : "Group Audio Call"),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("Session ID: $sessionId"),
+            const SizedBox(height: 20),
+            const Text("Call initiated successfully!"),
+          ],
+        ),
+      ),
+    );
   }
 }
