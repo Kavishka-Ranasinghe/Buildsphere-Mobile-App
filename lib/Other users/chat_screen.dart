@@ -213,6 +213,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
   bool _showScrollDownButton = false;
   bool _isLoadingOldMessages = false;
   final String callListenerId = "chat_screen_call_listener"; // Unique listener ID for calls
+  Call? _activeCall; // Track the active call
 
   @override
   void initState() {
@@ -337,7 +338,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
     if (messageText.isEmpty) return;
 
     TextMessage message = TextMessage(
-      receiverUid: widget.roomId,
+      receiverUid: widget.roomId!,
       receiverType: CometChatReceiverType.group,
       text: messageText,
       type: CometChatMessageType.text,
@@ -419,6 +420,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
         call,
         onSuccess: (Call? initiatedCall) {
           debugPrint("Group call initiated: ${initiatedCall?.sessionId}");
+          // Store the active call
+          _activeCall = initiatedCall;
           // Navigate to the custom call UI
           Navigator.push(
             context,
@@ -448,26 +451,120 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
   void onIncomingCallReceived(Call call) {
     super.onIncomingCallReceived(call);
     debugPrint("onIncomingCallReceived: ${call.sessionId}");
+
+    // Store the active call
+    _activeCall = call;
+
+    // Show dialog to accept or reject the call
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Incoming ${call.type == "video" ? "Video" : "Audio"} Call"),
+          content: Text("From group: ${widget.roomName}"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Reject the call
+                CometChat.rejectCall(
+                  call.sessionId!,
+                  "rejected",
+                  onSuccess: (Call rejectedCall) {
+                    debugPrint("Call Rejected: ${rejectedCall.sessionId}");
+                    _activeCall = null;
+                  },
+                  onError: (CometChatException e) {
+                    debugPrint("Error rejecting call: ${e.message}");
+                  },
+                );
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text("Reject", style: TextStyle(color: Colors.red)),
+            ),
+            TextButton(
+              onPressed: () {
+                // Accept the call
+                CometChat.acceptCall(
+                  call.sessionId!,
+                  onSuccess: (Call acceptedCall) {
+                    debugPrint("Call Accepted: ${acceptedCall.sessionId}");
+                    // Navigate to the call screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomCallScreen(
+                          sessionId: acceptedCall.sessionId ?? '',
+                          isVideoCall: acceptedCall.type == "video",
+                        ),
+                      ),
+                    );
+                  },
+                  onError: (CometChatException e) {
+                    debugPrint("Error accepting call: ${e.message}");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to accept call: ${e.message}")),
+                    );
+                  },
+                );
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text("Accept", style: TextStyle(color: Colors.green)),
+            ),
+          ],
+        );
+      },
+    );
   }
   @override
   void onOutgoingCallAccepted(Call call) {
     super.onOutgoingCallAccepted(call);
     debugPrint("onOutgoingCallAccepted: ${call.sessionId}");
+
+    // Navigate to the call screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomCallScreen(
+          sessionId: call.sessionId ?? '',
+          isVideoCall: call.type == "video",
+        ),
+      ),
+    );
   }
   @override
   void onOutgoingCallRejected(Call call) {
     super.onOutgoingCallRejected(call);
     debugPrint("onOutgoingCallRejected: ${call.sessionId}");
+
+    // Show a message to the initiator
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Call was rejected by the group")),
+    );
+    _activeCall = null;
   }
   @override
   void onIncomingCallCancelled(Call call) {
     super.onIncomingCallCancelled(call);
     debugPrint("onIncomingCallCancelled: ${call.sessionId}");
+
+    // Close the dialog if it's open
+    Navigator.of(context).pop();
+    _activeCall = null;
   }
   @override
   void onCallEndedMessageReceived(Call call) {
     super.onCallEndedMessageReceived(call);
     debugPrint("onCallEndedMessageReceived: ${call.sessionId}");
+
+    // Clear the active call
+    _activeCall = null;
+    // Show a message to the user
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Call ended")),
+    );
+    // Navigate back if on the call screen
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   String formatTimeOnly(DateTime? timestamp) {
@@ -761,6 +858,23 @@ class CustomCallScreen extends StatelessWidget {
     required this.sessionId,
     required this.isVideoCall,
   });
+  Future<void> _endCall(BuildContext context) async {
+    // For the initiator, cancel the call; for the receiver, just end the session
+    CometChat.rejectCall(
+      sessionId,
+      "cancelled",
+      onSuccess: (Call call) {
+        debugPrint("Call Ended: ${call.sessionId}");
+        Navigator.of(context).pop(); // Navigate back
+      },
+      onError: (CometChatException e) {
+        debugPrint("Error ending call: ${e.message}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to end call: ${e.message}")),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -774,7 +888,13 @@ class CustomCallScreen extends StatelessWidget {
           children: [
             Text("Session ID: $sessionId"),
             const SizedBox(height: 20),
-            const Text("Call initiated successfully!"),
+            const Text("Call in progress..."),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => _endCall(context),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text("End Call"),
+            ),
           ],
         ),
       ),
