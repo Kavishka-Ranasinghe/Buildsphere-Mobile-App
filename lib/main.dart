@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
-import 'package:cometchat_calls_sdk/cometchat_calls_sdk.dart'; // Added import
+import 'package:cometchat_chat_uikit/cometchat_chat_uikit.dart';
 import 'splash_screen.dart'; // Your custom splash screen
 
 void main() async {
@@ -11,6 +11,7 @@ void main() async {
   // CometChat Initialization
   String appID = "272345917d37d43c";
   String region = "in";
+  String aukey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e";
 
   AppSettings appSettings = (AppSettingsBuilder()
     ..subscriptionType = CometChatSubscriptionType.allUsers
@@ -23,17 +24,25 @@ void main() async {
     print("CometChat initialization failed: ${e.message}");
   });
 
-  // CometChat Calls Initialization
-  CallAppSettings callAppSettings = (CallAppSettingBuilder()
-    ..appId = appID
+  // Initialize CometChat UI Kit (as per the documentation)
+  UIKitSettings uiKitSettings = (UIKitSettingsBuilder()
+    ..subscriptionType = CometChatSubscriptionType.allUsers
+    ..autoEstablishSocketConnection = true
     ..region = region
-  ).build();
- //initiating cometchat call
-  CometChatCalls.init(callAppSettings, onSuccess: (String successMessage) {
-    debugPrint("CometChat Calls initialized successfully: $successMessage");
-  }, onError: (CometChatCallsException e) {
-    debugPrint("CometChat Calls initialization failed: ${e.message}");
-  });
+    ..appId = appID
+    ..authKey = aukey// Replace with your CometChat Auth Key
+  )
+      .build();
+
+  CometChatUIKit.init(
+    uiKitSettings: uiKitSettings,
+    onSuccess: (successMessage) async {
+      debugPrint("CometChat UI Kit Initialized");
+    },
+    onError: (e) {
+      debugPrint("CometChat UI Kit Initialization Error");
+    },
+  );
 
   runApp(const MyApp());
 }
