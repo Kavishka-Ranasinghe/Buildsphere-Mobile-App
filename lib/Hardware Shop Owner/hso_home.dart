@@ -201,7 +201,9 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
                       padding: const EdgeInsets.all(16),
                       itemCount: filteredProducts.length,
                       itemBuilder: (context, index) {
-                        final product = filteredProducts[index].data() as Map<String, dynamic>;
+                        final productDoc = filteredProducts[index]; // 👈 This gives us the full document
+                        final product = productDoc.data() as Map<String, dynamic>;
+
 
                         return Card(
                           elevation: 5,
@@ -229,10 +231,35 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
                               ),
                             ),
 
-                            title: Text(
-                              product['name'] ?? 'Unnamed Product',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 🏷️ Category Badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  margin: const EdgeInsets.only(bottom: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.8),
+                                    borderRadius: BorderRadius.circular(01),
+                                  ),
+                                  child: Text(
+                                    product['category'] ?? 'Unknown',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+
+                                // 🛒 Product Name
+                                Text(
+                                  product['name'] ?? 'Unnamed Product',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
+
                             subtitle: Text(
                               'Price: ${product['price']} LKR',
                               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
@@ -243,7 +270,8 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => EditProductPage(material: product),
+                                    builder: (context) => EditProductPage(productId: productDoc.id),
+                                    //builder: (context) => EditProductPage(material: product),
                                   ),
                                 );
                               },
