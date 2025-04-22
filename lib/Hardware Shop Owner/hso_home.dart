@@ -172,53 +172,90 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
 
               // Products List
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: rawMaterials.length,
-                  itemBuilder: (context, index) {
-                    final material = rawMaterials[index];
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('products')
+                      .where('ownerId', isEqualTo: currentUser?.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                    return Card(
-                      elevation: 5,
-                      margin: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundImage: AssetImage('assets/images/item_placeholder.png'),
-                          radius: 25,
+                    final filteredProducts = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (selectedCategory == 'All') return true;
+                      return data['category'] == selectedCategory;
+                    }).toList();
+
+                    if (filteredProducts.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No products found for this category.',
+                          style: TextStyle(color: Colors.white),
                         ),
-                        title: Text(
-                          material['name'] ?? 'Unknown Product',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Price: ${material['price'] ?? '0'} LKR',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditProductPage(material: {},),
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = filteredProducts[index].data() as Map<String, dynamic>;
+
+                        return Card(
+                          elevation: 5,
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              radius: 25,
+                              backgroundColor: Colors.grey[300],
+                              child: ClipOval(
+                                child: Image.network(
+                                  product['imageUrl'],
+                                  fit: BoxFit.cover,
+                                  width: 50,
+                                  height: 50,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
+                                ),
                               ),
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+
+                            title: Text(
+                              product['name'] ?? 'Unnamed Product',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              'Price: ${product['price']} LKR',
+                              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditProductPage(material: product),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-              ),
+              )
+
             ],
           ),
         ],
@@ -227,11 +264,3 @@ class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
   }
 }
 
-// Sample data for raw building materials.
-List<Map<String, dynamic>> rawMaterials = [
-  {'name': 'Lanwa Cement', 'price': '1000', 'category': 'Cement'},
-  {'name': 'Tokyo Cement', 'price': '1250', 'category': 'Cement'},
-  {'name': 'River Sand', 'price': '500', 'category': 'Soil'},
-  {'name': 'Pebbles', 'price': '5000', 'category': 'Pebbles'},
-  {'name': 'Bricks', 'price': '50', 'category': 'Brick'},
-];
