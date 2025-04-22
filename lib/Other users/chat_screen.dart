@@ -205,14 +205,13 @@ class ChatScreen extends StatefulWidget {
   _ChatScreenState createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListener {
+class _ChatScreenState extends State<ChatScreen> with MessageListener {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<BaseMessage> messages = [];
   MessagesRequest? _messagesRequest;
   bool _showScrollDownButton = false;
   bool _isLoadingOldMessages = false;
-  final String callListenerId = "chat_screen_call_listener"; // Unique listener ID for calls
 
   @override
   void initState() {
@@ -244,13 +243,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
 
     fetchMessages();
     CometChat.addMessageListener("chat_listener", this);
-    CometChat.addCallListener(callListenerId, this);
   }
 
   @override
   void dispose() {
     CometChat.removeMessageListener("chat_listener");
-    CometChat.removeCallListener(callListenerId);
     _messagesRequest = null;
     _scrollController.dispose();
     super.dispose();
@@ -443,31 +440,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
         SnackBar(content: Text("Error initiating call: $e")),
       );
     }
-  }
-  @override
-  void onIncomingCallReceived(Call call) {
-    super.onIncomingCallReceived(call);
-    debugPrint("onIncomingCallReceived: ${call.sessionId}");
-  }
-  @override
-  void onOutgoingCallAccepted(Call call) {
-    super.onOutgoingCallAccepted(call);
-    debugPrint("onOutgoingCallAccepted: ${call.sessionId}");
-  }
-  @override
-  void onOutgoingCallRejected(Call call) {
-    super.onOutgoingCallRejected(call);
-    debugPrint("onOutgoingCallRejected: ${call.sessionId}");
-  }
-  @override
-  void onIncomingCallCancelled(Call call) {
-    super.onIncomingCallCancelled(call);
-    debugPrint("onIncomingCallCancelled: ${call.sessionId}");
-  }
-  @override
-  void onCallEndedMessageReceived(Call call) {
-    super.onCallEndedMessageReceived(call);
-    debugPrint("onCallEndedMessageReceived: ${call.sessionId}");
   }
 
   String formatTimeOnly(DateTime? timestamp) {
