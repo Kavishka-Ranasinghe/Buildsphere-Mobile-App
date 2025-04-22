@@ -455,19 +455,10 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
     // Store the active call
     _activeCall = call;
 
-    // Check if sessionId is null
-    if (call.sessionId == null) {
-      debugPrint("Error: Call sessionId is null");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to process incoming call: sessionId is null")),
-      );
-      return;
-    }
-
     // Show dialog to accept or reject the call
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Incoming ${call.type == "video" ? "Video" : "Audio"} Call"),
@@ -478,7 +469,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
                 // Reject the call
                 CometChat.rejectCall(
                   call.sessionId!,
-                  "rejected", // Use string literal instead of CometChatConstants
+                  "rejected",
                   onSuccess: (Call rejectedCall) {
                     debugPrint("Call Rejected: ${rejectedCall.sessionId}");
                     _activeCall = null;
@@ -487,7 +478,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
                     debugPrint("Error rejecting call: ${e.message}");
                   },
                 );
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text("Reject", style: TextStyle(color: Colors.red)),
             ),
@@ -516,7 +507,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
                     );
                   },
                 );
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close the dialog
               },
               child: const Text("Accept", style: TextStyle(color: Colors.green)),
             ),
@@ -867,25 +858,14 @@ class CustomCallScreen extends StatelessWidget {
     required this.sessionId,
     required this.isVideoCall,
   });
-
   Future<void> _endCall(BuildContext context) async {
-    // Check if sessionId is empty
-    if (sessionId.isEmpty) {
-      debugPrint("Error: SessionId is empty");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to end call: sessionId is empty")),
-      );
-      Navigator.of(context).pop();
-      return;
-    }
-
-    // End the call
+    // For the initiator, cancel the call; for the receiver, just end the session
     CometChat.rejectCall(
       sessionId,
       "cancelled",
       onSuccess: (Call call) {
         debugPrint("Call Ended: ${call.sessionId}");
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // Navigate back
       },
       onError: (CometChatException e) {
         debugPrint("Error ending call: ${e.message}");
