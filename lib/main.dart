@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
+import 'package:cometchat_calls_sdk/cometchat_calls_sdk.dart'; // Added import
 import 'splash_screen.dart'; // Your custom splash screen
 
 void main() async {
@@ -22,6 +23,18 @@ void main() async {
     print("CometChat initialization failed: ${e.message}");
   });
 
+  // CometChat Calls Initialization
+  CallAppSettings callAppSettings = (CallAppSettingBuilder()
+    ..appId = appID
+    ..region = region
+  ).build();
+
+  CometChatCalls.init(callAppSettings, onSuccess: (String successMessage) {
+    debugPrint("CometChat Calls initialized successfully: $successMessage");
+  }, onError: (CometChatCallsException e) {
+    debugPrint("CometChat Calls initialization failed: ${e.message}");
+  });
+
   runApp(const MyApp());
 }
 
@@ -32,13 +45,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BuildSphere',
-      debugShowCheckedModeBanner: false, // Removed debug banner
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // Your custom splash screen
+      home: const SplashScreen(),
     );
   }
 }
