@@ -7,8 +7,9 @@ import 'Admin/admin_dash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cometchat_sdk/cometchat_sdk.dart';
+import 'package:cometchat_chat_uikit/cometchat_chat_uikit.dart'; // Add this import
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'no_internet_screen.dart'; // ⬅️ Make sure this file exists
+import 'no_internet_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -170,6 +171,7 @@ class _LoginPageState extends State<LoginPage> {
 
     User user = User(uid: uid, name: name);
 
+    // Create user with core SDK (if not already created)
     await CometChat.createUser(user, authKey,
         onSuccess: (User createdUser) {
           print("✅ CometChat user created: ${createdUser.uid}");
@@ -178,6 +180,7 @@ class _LoginPageState extends State<LoginPage> {
           print("⚠️ CometChat create user error: ${e.message}");
         });
 
+    // Login with core SDK
     await CometChat.login(uid, authKey,
         onSuccess: (User loggedInUser) {
           print("✅ CometChat login: ${loggedInUser.uid}");
@@ -185,6 +188,17 @@ class _LoginPageState extends State<LoginPage> {
         onError: (CometChatException e) {
           print("❌ CometChat login failed: ${e.message}");
         });
+
+    // Login with UI Kit
+    await CometChatUIKit.login(
+      uid,
+      onSuccess: (User uikitUser) {
+        print("✅ CometChat UI Kit login: ${uikitUser.uid}");
+      },
+      onError: (CometChatException e) {
+        print("❌ CometChat UI Kit login failed: ${e.message}");
+      },
+    );
   }
 
   void _forgotPassword() async {
@@ -218,7 +232,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     if (!_isConnected) {
-      return const NoInternetScreen(); // ⬅️ Shows this when there's no connection
+      return const NoInternetScreen();
     }
 
     bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
