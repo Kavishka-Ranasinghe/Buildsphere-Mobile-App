@@ -128,7 +128,9 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
         await user.updateDisplayName(_shopNameController.text.trim());
         await user.reload();
 
+        _waitapproval();
         _showSignUpSuccessDialog();
+
       }
     } on FirebaseAuthException catch (e) {
       setState(() {

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'hso_home.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:typed_data';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -29,7 +33,7 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   // Function to save the product
-  void _saveProduct() {
+  Future<void> _saveProduct() async {
     if (_image == null ||
         selectedCategory == null ||
         nameController.text.isEmpty ||
@@ -41,17 +45,73 @@ class _AddProductPageState extends State<AddProductPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Product added successfully!")),
+    // 👀 Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("Please wait..."),
+        content: Row(
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Expanded(child: Text("Uploading product...")),
+          ],
+        ),
+      ),
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HardwareShopOwnerPage()),
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in.");
+
+      String filePath = 'products/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      UploadTask uploadTask = FirebaseStorage.instance.ref(filePath).putFile(_image!);
+      TaskSnapshot snapshot = await uploadTask;
+      String imageUrl = await snapshot.ref.getDownloadURL();
+
+      await FirebaseFirestore.instance.collection('products').add({
+        'ownerId': user.uid,
+        'name': nameController.text.trim(),
+        'price': priceController.text.trim(),
+        'description': descriptionController.text.trim(),
+        'category': selectedCategory,
+        'imageUrl': imageUrl,
+        'createdAt': Timestamp.now(),
+      });
+
+      // ✅ Close loading dialog
+      Navigator.of(context).pop();
+
+      // 🎉 Show success dialog
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Success 🎉"),
+          content: const Text("Product added successfully!"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close success dialog
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
+                );
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
       );
-    });
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog on error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to add product: $e")),
+      );
+    }
   }
+
+
 
   @override
   Widget build(BuildContext context) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'hso_profile_edit.dart';
+import 'hso_profile.dart';
 import 'hso_app_drawer.dart';
 import 'edit_product_page.dart';
 
