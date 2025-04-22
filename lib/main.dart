@@ -28,7 +28,7 @@ void main() async {
     ..appId = appID
     ..region = region
   ).build();
-
+ //initiating cometchat call
   CometChatCalls.init(callAppSettings, onSuccess: (String successMessage) {
     debugPrint("CometChat Calls initialized successfully: $successMessage");
   }, onError: (CometChatCallsException e) {
