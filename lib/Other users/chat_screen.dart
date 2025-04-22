@@ -198,7 +198,6 @@ class FullScreenImageView extends StatelessWidget {
 class ChatScreen extends StatefulWidget {
   final String roomId;
   final String roomName;
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   const ChatScreen({super.key, required this.roomId, required this.roomName});
 
@@ -463,8 +462,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
       return;
     }
 
+    // Capture the ChatScreen context for navigation
+    final chatScreenContext = context;
+
     showDialog(
-      context: context,
+      context: chatScreenContext,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
@@ -491,51 +493,52 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
             TextButton(
               onPressed: () async {
                 debugPrint("Attempting to accept call: ${call.sessionId}");
+                bool callAccepted = false;
                 try {
                    CometChat.acceptCall(
                     call.sessionId!,
                     onSuccess: (Call acceptedCall) {
                       debugPrint("Call Accepted Successfully: ${acceptedCall.sessionId}");
-                      // Dismiss the dialog
-                      Navigator.of(dialogContext).pop();
-                      // Navigate to CustomCallScreen using navigatorKey
-                      debugPrint("Navigation to CustomCallScreen attempted");
-                      try {
-                        final navigatorState = ChatScreen.navigatorKey.currentState;
-                        if (navigatorState != null) {
-                          navigatorState.push(
-                            MaterialPageRoute(
-                              builder: (context) => CustomCallScreen(
-                                sessionId: call.sessionId!,
-                                isVideoCall: call.type == "video",
-                              ),
-                            ),
-                          );
-                          debugPrint("Navigation to CustomCallScreen successful");
-                        } else {
-                          debugPrint("Navigation failed: NavigatorState is null");
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            const SnackBar(content: Text("Navigation failed: NavigatorState is null")),
-                          );
-                        }
-                      } catch (e) {
-                        debugPrint("Navigation to CustomCallScreen failed: $e");
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          SnackBar(content: Text("Failed to navigate to call screen: $e")),
-                        );
-                      }
+                      callAccepted = true;
                     },
                     onError: (CometChatException e) {
                       debugPrint("Error accepting call: ${e.message}");
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
                         SnackBar(content: Text("Failed to accept call: ${e.message}")),
                       );
-                      Navigator.of(dialogContext).pop();
+                      throw e;
                     },
                   );
                 } catch (e) {
                   debugPrint("Accept call failed: $e");
                   Navigator.of(dialogContext).pop();
+                  return;
+                }
+
+                // Dismiss the dialog
+                Navigator.of(dialogContext).pop();
+
+                // Navigate using the captured ChatScreen context
+                if (callAccepted) {
+                  debugPrint("Navigation to CustomCallScreen attempted");
+                  try {
+                    await Navigator.of(chatScreenContext).push(
+                      MaterialPageRoute(
+                        builder: (context) => CustomCallScreen(
+                          sessionId: call.sessionId!,
+                          isVideoCall: call.type == "video",
+                        ),
+                      ),
+                    );
+                    debugPrint("Navigation to CustomCallScreen successful");
+                  } catch (e) {
+                    debugPrint("Navigation to CustomCallScreen failed: $e");
+                    ScaffoldMessenger.of(chatScreenContext).showSnackBar(
+                      SnackBar(content: Text("Failed to navigate to call screen: $e")),
+                    );
+                  }
+                } else {
+                  debugPrint("Navigation skipped: Call was not accepted");
                 }
               },
               child: const Text("Accept", style: TextStyle(color: Colors.green)),
@@ -603,7 +606,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener, CallListe
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: ChatScreen.navigatorKey, // Assign the navigator key
       appBar: AppBar(
         title: Row(
           children: [
