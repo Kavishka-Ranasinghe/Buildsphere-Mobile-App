@@ -1,25 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../app_drawer.dart';  // Assuming you have an AppDrawer widget.
+import 'package:cached_network_image/cached_network_image.dart';
+import '../app_drawer.dart';
 
 class ShopDetailScreen extends StatelessWidget {
-  final String shopName;
-  final String shopAddress;
-  final String contactNumber;
-  final String? googleMapLink;
+  final String ownerId; // 🔑 UID of the hardware shop owner
 
-  const ShopDetailScreen({
-    super.key,
-    required this.shopName,
-    required this.shopAddress,
-    required this.contactNumber,
-    this.googleMapLink = "https://maps.app.goo.gl/5bcF7PPB1ji3Z6kG9", // Default Google Map link
-  });
+  const ShopDetailScreen({super.key, required this.ownerId});
 
-  // Function to launch the phone dialer
   void _callNumber(BuildContext context, String number) async {
     final Uri phoneUri = Uri.parse('tel:$number');
-
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
     } else {
@@ -29,12 +20,10 @@ class ShopDetailScreen extends StatelessWidget {
     }
   }
 
-  // Function to open Google Maps
   void _openGoogleMaps(BuildContext context, String url) async {
-    final Uri googleMapsUri = Uri.parse(url);
-
-    if (await canLaunchUrl(googleMapsUri)) {
-      await launchUrl(googleMapsUri, mode: LaunchMode.externalApplication);
+    final Uri mapsUri = Uri.parse(url);
+    if (await canLaunchUrl(mapsUri)) {
+      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open Google Maps')),
@@ -48,108 +37,108 @@ class ShopDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Shop Details'),
         backgroundColor: Colors.green,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context); // Navigate back
-          },
-        ),
       ),
       drawer: const AppDrawer(),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header section
-            Container(
-              color: Colors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              child: Row(
-                children: const [
-                  Expanded(
-                    child: Text(
-                      'Shop Details',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.yellowAccent,
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('users').doc(ownerId).snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+
+          final shopName = data['shopName'] ?? 'N/A';
+          final address = data['address'] ?? 'N/A';
+          final phone = data['phone'] ?? 'N/A';
+          final mapLink = data['mapLink'] ?? '';
+          final profileImage = data['profileImage'];
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 🖼️ Shop Image
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: profileImage != null
+                        ? CachedNetworkImage(
+                      imageUrl: profileImage,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Image.asset('assets/images/h_shop.jpg'),
+                    )
+                        : Image.asset('assets/images/h_shop.jpg', height: 200),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 🏪 Shop Info
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Shop Name: $shopName',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text('Address: $address', style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => _callNumber(context, phone),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.phone, color: Colors.green, size: 28),
+                              const SizedBox(width: 10),
+                              Text(
+                                phone,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 🗺️ Google Maps Section
+                GestureDetector(
+                  onTap: mapLink.isNotEmpty ? () => _openGoogleMaps(context, mapLink) : null,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_pin, color: Colors.red, size: 30),
+                      const SizedBox(width: 8),
+                      mapLink.isNotEmpty
+                          ? const Text(
+                        'View on Google Maps',
+                        style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline),
+                      )
+                          : const Text(
+                        'No location added',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-
-            // Shop Image (Placeholder)
-            Center(
-              child: Image.asset(
-                'assets/images/h_shop.jpg', // Use the same background image
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Shop details
-            Text(
-              'Shop Name: $shopName',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Text('Address: $shopAddress', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 10),
-
-            // Contact number section (Clickable icon + text)
-            GestureDetector(
-              onTap: () => _callNumber(context, contactNumber), // Call function when tapped
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.phone, color: Colors.green, size: 30),
-                    onPressed: () => _callNumber(context, contactNumber),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Contact: $contactNumber',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Google Maps Section (Whole row clickable)
-            GestureDetector(
-              onTap: googleMapLink != null && googleMapLink!.isNotEmpty
-                  ? () => _openGoogleMaps(context, googleMapLink!)
-                  : null,
-              child: Row(
-                children: [
-                  Icon(Icons.location_pin, color: Colors.red, size: 30),
-                  const SizedBox(width: 8),
-                  googleMapLink != null && googleMapLink!.isNotEmpty
-                      ? Text(
-                    'View on Google Maps',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                  )
-                      : const Text(
-                    'Location not given',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

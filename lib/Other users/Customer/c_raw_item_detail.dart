@@ -156,9 +156,7 @@ class RawItemDetailScreen extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => ShopDetailScreen(
-                                  shopName: data['shopName'] ?? 'N/A',
-                                  shopAddress: data['address'] ?? '',
-                                  contactNumber: data['ownerTel'] ?? '',
+                                  ownerId: data['ownerId'], // ✅ Pass the UID of the hardware shop owner
                                 ),
                               ),
                             );
