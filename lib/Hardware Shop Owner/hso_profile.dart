@@ -275,34 +275,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
       _userId = user.uid;
 
+      // 1. Re-authentication (Password Prompt)
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: await _promptForPassword(),
+      );
+      await user.reauthenticateWithCredential(cred);
+
+      // 2. Delete all user's products
+      final productDocs = await FirebaseFirestore.instance
+          .collection('products')
+          .where('ownerId', isEqualTo: _userId)
+          .get();
+      for (var doc in productDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      // 3. Delete user document from Firestore
       await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
+
+      // 4. Delete profile image from Storage
       if (_downloadURL != null) {
         try {
-          await FirebaseStorage.instance.ref('profile_pictures/$_userId.jpg').delete();
+          await FirebaseStorage.instance
+              .ref('profile_images/$_userId/profile.jpg')
+              .delete();
         } catch (e) {
-          print("No profile picture found to delete.");
+          print("No profile image found or already deleted.");
         }
       }
+
+      // 5. Delete from Firebase Auth
       await user.delete();
+
+      // 6. Redirect to login
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
             (route) => false,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account deleted successfully")),
-        );
-      }
+      // 6. Show success popup and redirect
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: const Text("Account Deleted ✅"),
+            content: const Text(
+              "Thank you for choosing us! 🏗️💚\nHope you will come back again! 👋😊",
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              TextButton(
+                child: const Text("OK"),
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                        (route) => false,
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error deleting account: $e")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting account: $e")),
+      );
     }
   }
+  Future<String> _promptForPassword() async {
+    String password = '';
+    await showDialog(
+      context: context,
+      builder: (context) {
+        final TextEditingController _passwordController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Re-authentication Required'),
+          content: TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Enter your password'),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () {
+                password = _passwordController.text.trim();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return password;
+  }
+
 
   String? _validateMapLink(String? value) {
     if (value != null && value.isNotEmpty) {

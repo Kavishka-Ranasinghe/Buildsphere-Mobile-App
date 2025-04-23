@@ -71,31 +71,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
+      _userId = user.uid;
 
-      // Step 1: Delete user document from Firestore
+      // 🔒 Step 1: Re-authenticate
+      final password = await _promptForPassword();
+      final cred = EmailAuthProvider.credential(email: user.email!, password: password);
+      await user.reauthenticateWithCredential(cred);
+
+      // 🗑️ Step 2: Delete Firestore document
       await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
 
-      // Step 2: Delete profile image from Firebase Storage (if exists)
+      // 🧹 Step 3: Delete profile picture (if any)
       if (_downloadURL != null) {
         try {
-          await FirebaseStorage.instance.ref('profile_pictures/$_userId.jpg').delete();
+          await FirebaseStorage.instance.ref('profile_images/$_userId/profile.jpg').delete();
         } catch (e) {
-          print("No profile picture found to delete.");
+          debugPrint("No profile image found or already deleted.");
         }
       }
 
-      // Step 3: Delete user from Firebase Authentication
+      // 🔥 Step 4: Delete from Firebase Auth
       await user.delete();
+      
 
-      // Step 4: Redirect to Login Page
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-            (route) => false,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account deleted successfully")),
+      // 🎉 Step 5: Show farewell popup
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Text("Account Deleted 🎉"),
+          content: const Text(
+            "Thank you for choosing us! 🛠️💚\nWe hope to see you again someday! 👋🙂",
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close popup
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                      (route) => false,
+                );
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,6 +126,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+  Future<String> _promptForPassword() async {
+    String password = '';
+    await showDialog(
+      context: context,
+      builder: (context) {
+        final TextEditingController _passwordController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Re-authentication Required'),
+          content: TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Enter your password'),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () {
+                password = _passwordController.text.trim();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return password;
+  }
+
   // Function to delete profile image
   Future<void> _deleteProfileImage() async {
     try {
