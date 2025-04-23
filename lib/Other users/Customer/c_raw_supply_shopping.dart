@@ -19,6 +19,7 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
   String? selectedCity;
   String? selectedFilter = "All"; // Default to "All"
   bool _showFilters = true;
+  String? Description;
 
   // Fetch user details
   @override
@@ -407,12 +408,14 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => RawItemDetailScreen(
+                                        imageUrl:product['imageUrl'] ??'N/A',
                                         itemName: product['name'] ?? 'N/A',
                                         itemType: product['category'] ?? 'N/A',
                                         price: product['price'] ?? 'N/A',
                                         shopName: product['shopName'] ?? 'N/A',
                                         shopAddress: product['address'] ?? 'N/A',
                                         contactNumber: product['ownerTel'] ?? '',
+                                        description: product['description'] ?? 'N/A', // ✅ Add this line
                                       ),
                                     ),
                                   );

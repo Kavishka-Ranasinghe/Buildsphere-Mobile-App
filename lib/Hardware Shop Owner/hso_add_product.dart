@@ -24,6 +24,9 @@ class _AddProductPageState extends State<AddProductPage> {
   String? userDistrict;
   String? userTown;
   String? ownerPhone;
+  String? shopName;
+  String? shopAddress;
+  String? Description;
 
 
 
@@ -38,6 +41,7 @@ class _AddProductPageState extends State<AddProductPage> {
       });
     }
   }
+
   Future<bool> _validateLocationBeforeAdd() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return false;
@@ -47,15 +51,18 @@ class _AddProductPageState extends State<AddProductPage> {
       final data = doc.data();
 
       if (data == null ||
-          !(data.containsKey('district') && data.containsKey('city') && data.containsKey('phone')) ||
+          !(data.containsKey('district') && data.containsKey('city') && data.containsKey('phone') && data.containsKey('shopName') && data.containsKey('address')) ||
           (data['district'] as String?)?.isEmpty != false ||
           (data['city'] as String?)?.isEmpty != false ||
-          (data['phone'] as String?)?.isEmpty != false) {
+          (data['phone'] as String?)?.isEmpty != false ||
+          (data['shopName'] as String?)?.isEmpty != false ||
+          (data['description'] as String?)?.isEmpty != false ||
+          (data['address'] as String?)?.isEmpty != false) {
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
             title: const Text("Profile Incomplete"),
-            content: const Text("Please add your District, City, and Phone Number in your profile before adding products."),
+            content: const Text("Please complete your profile with District, City, Phone, Shop Name, and Shop Address."),
             actions: [
               TextButton(
                 onPressed: () {
@@ -76,6 +83,10 @@ class _AddProductPageState extends State<AddProductPage> {
       userDistrict = data['district'];
       userTown = data['city'];
       ownerPhone = data['phone'];
+      shopName = data['shopName'];
+      shopAddress = data['address'];
+      Description = data['description'];
+
       return true;
     } catch (e) {
       await showDialog(
@@ -95,10 +106,6 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 
-
-
-
-  // Function to save the product
   Future<void> _saveProduct() async {
     if (_image == null ||
         selectedCategory == null ||
@@ -111,7 +118,6 @@ class _AddProductPageState extends State<AddProductPage> {
       return;
     }
 
-    // 👀 Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -128,7 +134,6 @@ class _AddProductPageState extends State<AddProductPage> {
     );
 
     try {
-
       User? user = FirebaseAuth.instance.currentUser;
       final isValid = await _validateLocationBeforeAdd();
       if (!isValid) return;
@@ -148,14 +153,14 @@ class _AddProductPageState extends State<AddProductPage> {
         'imageUrl': imageUrl,
         'district': userDistrict,
         'town': userTown,
-        'ownerTel': ownerPhone, // ✅ Save the phone number here
+        'ownerTel': ownerPhone,
+        'shopName': shopName,
+        'address': shopAddress,
         'createdAt': Timestamp.now(),
       });
 
-      // ✅ Close loading dialog
       Navigator.of(context).pop();
 
-      // 🎉 Show success dialog
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
@@ -164,7 +169,7 @@ class _AddProductPageState extends State<AddProductPage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close success dialog
+                Navigator.of(context).pop();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
@@ -176,12 +181,13 @@ class _AddProductPageState extends State<AddProductPage> {
         ),
       );
     } catch (e) {
-      Navigator.of(context).pop(); // Close loading dialog on error
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to add product: $e")),
       );
     }
   }
+
 
 
 
