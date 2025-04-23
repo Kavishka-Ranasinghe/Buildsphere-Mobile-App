@@ -47,20 +47,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_userId).get();
 
     if (userDoc.exists) {
-      setState(() {
-        _nameController.text = userDoc['shopName'] ?? '';
-        _emailController.text = userDoc['email'] ?? '';
-        _phoneController.text = userDoc['phone'] ?? '';
-        _addressController.text = userDoc['address'] ?? '';
-        _mapLinkController.text = userDoc['mapLink'] ?? '';
-        _downloadURL = userDoc['profileImage'];
-        _selectedDistrict = userDoc['district'];
-        _selectedCity = userDoc['city'];
-        _cacheProfileImage(_downloadURL!);
+      final data = userDoc.data() as Map<String, dynamic>;
 
+      setState(() {
+        _nameController.text = data['shopName'] ?? '';
+        _emailController.text = data['email'] ?? '';
+        _phoneController.text = data['phone'] ?? '';
+        _addressController.text = data['address'] ?? '';
+        _mapLinkController.text = data['mapLink'] ?? '';
+        _downloadURL = data['profileImage'];
+        _selectedDistrict = data['district'] ?? null;
+        _selectedCity = data['city'] ?? null;
       });
+
+      if (_downloadURL != null) {
+        await _cacheProfileImage(_downloadURL!);
+      }
     }
   }
+
   Future<void> _cacheProfileImage(String imageUrl) async {
     final directory = await getApplicationDocumentsDirectory();
     final localPath = '${directory.path}/profile_$_userId.jpg';
@@ -82,19 +87,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _updateProfile() async {
     if (_formKey.currentState!.validate()) {
       try {
+        final updatedPhone = _phoneController.text.trim();
+
+        // Update user's profile
         await FirebaseFirestore.instance.collection('users').doc(_userId).update({
           'shopName': _nameController.text.trim(),
           'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
+          'phone': updatedPhone,
           'address': _addressController.text.trim(),
           'mapLink': _mapLinkController.text.trim(),
           'district': _selectedDistrict,
           'city': _selectedCity,
         });
 
+        // ✅ Update all products posted by this user with the new phone number
+        final productsRef = FirebaseFirestore.instance.collection('products');
+        final querySnapshot = await productsRef.where('ownerId', isEqualTo: _userId).get();
+
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in querySnapshot.docs) {
+          batch.update(doc.reference, {'ownerTel': updatedPhone});
+        }
+        await batch.commit();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Profile updated successfully")),
+            const SnackBar(content: Text("Profile and products updated successfully")),
           );
         }
       } catch (e) {
@@ -106,6 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);

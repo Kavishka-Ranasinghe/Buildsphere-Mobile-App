@@ -23,6 +23,8 @@ class _AddProductPageState extends State<AddProductPage> {
   final ImagePicker _picker = ImagePicker();
   String? userDistrict;
   String? userTown;
+  String? ownerPhone;
+
 
 
 
@@ -45,18 +47,19 @@ class _AddProductPageState extends State<AddProductPage> {
       final data = doc.data();
 
       if (data == null ||
-          !(data.containsKey('district') && data.containsKey('city')) ||
+          !(data.containsKey('district') && data.containsKey('city') && data.containsKey('phone')) ||
           (data['district'] as String?)?.isEmpty != false ||
-          (data['city'] as String?)?.isEmpty != false) {
+          (data['city'] as String?)?.isEmpty != false ||
+          (data['phone'] as String?)?.isEmpty != false) {
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text("Location Required"),
-            content: const Text("You need to add your District and Town in your profile page before adding products."),
+            title: const Text("Profile Incomplete"),
+            content: const Text("Please add your District, City, and Phone Number in your profile before adding products."),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // close the dialog
+                  Navigator.of(context).pop();
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => const HardwareShopOwnerPage()),
@@ -72,13 +75,14 @@ class _AddProductPageState extends State<AddProductPage> {
 
       userDistrict = data['district'];
       userTown = data['city'];
+      ownerPhone = data['phone'];
       return true;
     } catch (e) {
       await showDialog(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text("Error"),
-          content: const Text("Failed to fetch location details. Please check your internet or try again."),
+          content: const Text("Failed to fetch your profile data. Please check your internet or try again."),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -90,6 +94,7 @@ class _AddProductPageState extends State<AddProductPage> {
       return false;
     }
   }
+
 
 
 
@@ -143,6 +148,7 @@ class _AddProductPageState extends State<AddProductPage> {
         'imageUrl': imageUrl,
         'district': userDistrict,
         'town': userTown,
+        'ownerTel': ownerPhone, // ✅ Save the phone number here
         'createdAt': Timestamp.now(),
       });
 

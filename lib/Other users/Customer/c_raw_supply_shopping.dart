@@ -18,11 +18,38 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
   String? selectedDistrict;
   String? selectedCity;
   String? selectedFilter = "All"; // Default to "All"
+  bool _showFilters = true;
+
   // Fetch user details
   @override
   void initState() {
     super.initState();
     _fetchUserDistrictCity();
+  }
+  Stream<QuerySnapshot> getFilteredProducts() {
+    final productsRef = FirebaseFirestore.instance.collection('products');
+
+    if ((selectedDistrict == null || selectedDistrict == 'None') &&
+        (selectedCity == null || selectedCity == 'None') &&
+        selectedFilter == 'All') {
+      return productsRef.snapshots(); // Get all
+    }
+
+    Query query = productsRef;
+
+    if (selectedDistrict != null && selectedDistrict != 'None') {
+      query = query.where('district', isEqualTo: selectedDistrict);
+    }
+
+    if (selectedCity != null && selectedCity != 'None') {
+      query = query.where('town', isEqualTo: selectedCity);
+    }
+
+    if (selectedFilter != null && selectedFilter != 'All') {
+      query = query.where('category', isEqualTo: selectedFilter);
+    }
+
+    return query.snapshots();
   }
 
   Future<void> _fetchUserDistrictCity() async {
@@ -44,13 +71,13 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
 
   // Placeholder data
   final List<String> districts = [
-    'None','Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+    'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
     'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya',
     'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee', 'Kurunegala', 'Puttalam',
     'Anuradhapura', 'Polonnaruwa', 'Badulla', 'Monaragala', 'Ratnapura', 'Kegalle'
   ];
   final Map<String, List<String>> cities = {
-    'None':[],
+
     'Colombo': ['Colombo 1', 'Colombo 2', 'Colombo 3', 'Nugegoda', 'Dehiwala', 'Maharagama', 'Piliyandala', 'Homagama', 'Kottawa', 'Battaramulla', 'Koswatta'],
     'Gampaha': ['Negombo', 'Gampaha', 'Ja-Ela', 'Wattala', 'Minuwangoda', 'Kelaniya', 'Ragama', 'Mirigama', 'Katunayake', 'Ganemulla'],
     'Kalutara': ['Kalutara', 'Panadura', 'Horana', 'Beruwala', 'Matugama', 'Aluthgama', 'Wadduwa', 'Ingiriya', 'Payagala', 'Bandaragama'],
@@ -159,91 +186,215 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                 ),
               ),
               // Centering the Dropdowns
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white, // Solid White Background
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // District Dropdown
-                          _buildDropdown(
-                            hint: "Select District",
-                            value: selectedDistrict,
-                            items: districts,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedDistrict = value;
-                                selectedCity = null; // Reset city when district changes
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          // City Dropdown (only shown when district is selected)
-                          if (selectedDistrict != null)
-                            _buildDropdown(
-                              hint: "Select City",
-                              value: selectedCity,
-                              items: cities[selectedDistrict]!,
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedCity = value;
-                                });
-                              },
-                            ),
-                          const SizedBox(height: 10),
-                          // Filter Dropdown with "All" Option
-                          _buildDropdown(
-                            hint: "Select Filter",
-                            value: selectedFilter,
-                            items: filters,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedFilter = value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+
               // Item Listings
-              if (selectedCity != null)
+              if (true)
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: 5, // Placeholder for filtered posts
-                    itemBuilder: (context, index) {
-                      return _buildItemCard(
-                        index: index,
-                        itemType: selectedFilter == "All" ? "Various Items" : selectedFilter!,
-                        onCall: () => _callNumber('0771234567'),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RawItemDetailScreen(
-                                itemName: 'Item $index',
-                                itemType: selectedFilter == "All" ? "Various Items" : selectedFilter!,
-                                price: 'Rs. 100/block',
-                                shopName: 'ABC Hardware',
-                                shopAddress: '123 Main Street, Colombo',
-                                contactNumber: '0771234567',
-                              ),
-                            ),
+                  child: Stack(
+                    children: [
+                      // 🔁 Scrollable product list WITHOUT padding
+                      StreamBuilder<QuerySnapshot>(
+                        stream: getFilteredProducts(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+
+                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            return ListView(
+                              padding: const EdgeInsets.only(bottom: 80),
+                              children: [
+                                if (_showFilters)
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.95),
+                                        borderRadius: BorderRadius.circular(15),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 8,
+                                            offset: Offset(0, 4),
+                                          )
+                                        ],
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          _buildDropdown(
+                                            hint: "Select District",
+                                            value: selectedDistrict,
+                                            items: districts,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                selectedDistrict = value;
+                                                selectedCity = null;
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(height: 10),
+                                          if (selectedDistrict != null)
+                                            _buildDropdown(
+                                              hint: "Select City",
+                                              value: selectedCity,
+                                              items: cities[selectedDistrict!]!,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  selectedCity = value;
+                                                });
+                                              },
+                                            ),
+                                          const SizedBox(height: 10),
+                                          _buildDropdown(
+                                            hint: "Select Filter",
+                                            value: selectedFilter,
+                                            items: filters,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                selectedFilter = value;
+                                              });
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(top: 60.0),
+                                    child: Text(
+                                      "No products found.",
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.greenAccent, // ✅ Green text color
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+
+                              ],
+                            );
+                          }
+
+
+                          final products = snapshot.data!.docs;
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 80), // enough for FAB
+                            itemCount: (_showFilters ? 1 : 0) + products.length, // 👈 One extra item for filter box
+                            itemBuilder: (context, index) {
+                              if (_showFilters && index == 0) {
+                                // 🔍 Return filter UI as first item in list
+                                return Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.95),
+                                      borderRadius: BorderRadius.circular(15),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
+                                        )
+                                      ],
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        _buildDropdown(
+                                          hint: "Select District",
+                                          value: selectedDistrict,
+                                          items: districts,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              selectedDistrict = value;
+                                              selectedCity = null;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 10),
+                                        if (selectedDistrict != null)
+                                          _buildDropdown(
+                                            hint: "Select City",
+                                            value: selectedCity,
+                                            items: cities[selectedDistrict!]!,
+                                            onChanged: (value) {
+                                              setState(() {
+                                                selectedCity = value;
+                                              });
+                                            },
+                                          ),
+                                        const SizedBox(height: 10),
+                                        _buildDropdown(
+                                          hint: "Select Filter",
+                                          value: selectedFilter,
+                                          items: filters,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              selectedFilter = value;
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              final actualIndex = _showFilters ? index - 1 : index;
+                              final product = products[actualIndex].data() as Map<String, dynamic>;
+
+                              return _buildItemCard(
+                                product: product,
+                                onCall: () => _callNumber(product['ownerTel'] ?? ''),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RawItemDetailScreen(
+                                        itemName: product['name'] ?? 'N/A',
+                                        itemType: product['category'] ?? 'N/A',
+                                        price: product['price'] ?? 'N/A',
+                                        shopName: product['shopName'] ?? 'N/A',
+                                        shopAddress: product['address'] ?? 'N/A',
+                                        contactNumber: product['ownerTel'] ?? '',
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           );
                         },
-                      );
-                    },
+                      ),
+
+
+
+
+                      // 📎 Toggle Button
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton(
+                          backgroundColor: Colors.green,
+                          onPressed: () {
+                            setState(() {
+                              _showFilters = !_showFilters;
+                            });
+                          },
+                          child: Icon(_showFilters ? Icons.close : Icons.filter_list),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+
+
+
             ],
           ),
         ],
@@ -291,38 +442,41 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
     );
   }
 
-  Widget _buildItemCard({
-    required int index,
-    required String itemType,
-    required VoidCallback onCall,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      elevation: 4,
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundImage: AssetImage('assets/images/item_placeholder.png'), // Placeholder image
-          radius: 28,
-        ),
-        title: Text('Item $index', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Item Type: $itemType'),
-            const Text('Price: Rs. 100/block'),
-            const Text('Shop: ABC Hardware'),
-            const Text('Contact: 0771234567'),
-          ],
-        ),
-        isThreeLine: true,
-        onTap: onTap,
-        trailing: IconButton(
-          icon: const Icon(Icons.call, color: Colors.green),
-          onPressed: onCall,
-        ),
+Widget _buildItemCard({
+  required Map<String, dynamic> product,
+  required VoidCallback onCall,
+  required VoidCallback onTap,
+}) {
+  return Card(
+    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    elevation: 4,
+    child: ListTile(
+      leading: CircleAvatar(
+        radius: 28,
+        backgroundImage: product['imageUrl'] != null
+            ? NetworkImage(product['imageUrl'])
+            : const AssetImage('assets/images/item_placeholder.png') as ImageProvider,
       ),
-    );
-  }
+      title: Text(
+       "Name : ${product['name'] ?? 'N/A'}",
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Item Type: ${product['category'] ?? 'N/A'}"),
+          Text("Price: LKR ${product['price'] ?? 'N/A'}"),
+        ],
+      ),
+      isThreeLine: true,
+      onTap: onTap,
+      trailing: IconButton(
+        icon: const Icon(Icons.call, color: Colors.green),
+        onPressed: onCall,
+      ),
+    ),
+  );
+}
+
 
