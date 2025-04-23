@@ -29,11 +29,12 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
   Stream<QuerySnapshot> getFilteredProducts() {
     final productsRef = FirebaseFirestore.instance.collection('products');
 
-    if ((selectedDistrict == null || selectedDistrict == 'None') &&
+    if ((selectedDistrict == null || selectedDistrict == 'None' || selectedDistrict == 'Sri Lanka') &&
         (selectedCity == null || selectedCity == 'None') &&
         selectedFilter == 'All') {
       return productsRef.snapshots(); // Get all
     }
+
 
     Query query = productsRef;
 
@@ -71,7 +72,7 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
 
   // Placeholder data
   final List<String> districts = [
-    'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+    'Sri Lanka','Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
     'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya',
     'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee', 'Kurunegala', 'Puttalam',
     'Anuradhapura', 'Polonnaruwa', 'Badulla', 'Monaragala', 'Ratnapura', 'Kegalle'
@@ -256,6 +257,31 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                                               });
                                             },
                                           ),
+                                          const SizedBox(height: 10),
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              setState(() {
+                                                selectedDistrict = null;
+                                                selectedCity = null;
+                                                selectedFilter = 'All';
+                                              });
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                            ),
+                                            icon: const Icon(Icons.refresh, color: Colors.white),
+                                            label: const Text(
+                                              'Reset Filters',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -268,15 +294,14 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                                       style: TextStyle(
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.greenAccent, // ✅ Green text color
+                                        color: Colors.greenAccent,
                                       ),
                                     ),
                                   ),
                                 ),
-
-
                               ],
                             );
+
                           }
 
 
@@ -339,8 +364,34 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
                                             });
                                           },
                                         ),
+                                        const SizedBox(height: 10),
+                                        ElevatedButton.icon(
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedDistrict = null;
+                                              selectedCity = null;
+                                              selectedFilter = 'All';
+                                            });
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          ),
+                                          icon: const Icon(Icons.refresh, color: Colors.white),
+                                          label: const Text(
+                                            'Reset Filters',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
+
                                   ),
                                 );
                               }
