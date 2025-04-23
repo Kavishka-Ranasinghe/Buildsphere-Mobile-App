@@ -26,7 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _mapLinkController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
-
+  String? _selectedDistrict;
+  String? _selectedCity;
   File? _profileImage;
   String _userId = "";
   String? _downloadURL;
@@ -53,7 +54,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _addressController.text = userDoc['address'] ?? '';
         _mapLinkController.text = userDoc['mapLink'] ?? '';
         _downloadURL = userDoc['profileImage'];
+        _selectedDistrict = userDoc['district'];
+        _selectedCity = userDoc['city'];
         _cacheProfileImage(_downloadURL!);
+
       });
     }
   }
@@ -84,6 +88,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'phone': _phoneController.text.trim(),
           'address': _addressController.text.trim(),
           'mapLink': _mapLinkController.text.trim(),
+          'district': _selectedDistrict,
+          'city': _selectedCity,
         });
 
         if (mounted) {
@@ -405,6 +411,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         keyboardType: TextInputType.url,
                         validator: _validateMapLink,
                       ),
+                      const SizedBox(height: 10),
+                      // ✅ District Dropdown
+                      _buildDropdown(
+                        hint: "Select District",
+                        value: _selectedDistrict,
+                        items: districts,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedDistrict = value;
+                            _selectedCity = null; // Reset city
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+
+                      // ✅ City Dropdown (only if district is selected)
+                      if (_selectedDistrict != null)
+                        _buildDropdown(
+                          hint: "Select City",
+                          value: _selectedCity,
+                          items: cities[_selectedDistrict!] ?? [],
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCity = value;
+                            });
+                          },
+                        ),
+                      const SizedBox(height: 20),
                       // ✅ Buttons
                       ElevatedButton(
                         onPressed: _updateProfile,
@@ -436,6 +470,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+final List<String> districts = [
+  'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+  'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar', 'Vavuniya',
+  'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee', 'Kurunegala', 'Puttalam',
+  'Anuradhapura', 'Polonnaruwa', 'Badulla', 'Monaragala', 'Ratnapura', 'Kegalle'
+];
+final Map<String, List<String>> cities = {
+  'Colombo': ['Colombo 1', 'Colombo 2', 'Colombo 3', 'Nugegoda', 'Dehiwala', 'Maharagama', 'Piliyandala', 'Homagama', 'Kottawa', 'Battaramulla', 'Koswatta'],
+  'Gampaha': ['Negombo', 'Gampaha', 'Ja-Ela', 'Wattala', 'Minuwangoda', 'Kelaniya', 'Ragama', 'Mirigama', 'Katunayake', 'Ganemulla'],
+  'Kalutara': ['Kalutara', 'Panadura', 'Horana', 'Beruwala', 'Matugama', 'Aluthgama', 'Wadduwa', 'Ingiriya', 'Payagala', 'Bandaragama'],
+  'Kandy': ['Kandy', 'Peradeniya', 'Katugastota', 'Gampola', 'Nawalapitiya', 'Wattegama', 'Digana', 'Pilimathalawa', 'Teldeniya', 'Kadugannawa'],
+  'Matale': ['Matale', 'Dambulla', 'Galewela', 'Rattota', 'Ukuwela', 'Palapathwala', 'Laggala', 'Nalanda'],
+  'Nuwara Eliya': ['Nuwara Eliya', 'Hatton', 'Ginigathhena', 'Kotagala', 'Talawakelle', 'Ragala', 'Pundaluoya', 'Dayagama'],
+  'Galle': ['Galle', 'Hikkaduwa', 'Unawatuna', 'Ambalangoda', 'Karapitiya', 'Weligama', 'Ahangama', 'Bentota', 'Koggala', 'Balapitiya'],
+  'Matara': ['Matara', 'Weligama', 'Akurassa', 'Deniyaya', 'Hakmana', 'Dikwella', 'Kamburugamuwa', 'Devinuwara', 'Weeraketiya'],
+  'Hambantota': ['Hambantota', 'Tangalle', 'Beliatta', 'Tissamaharama', 'Sooriyawewa', 'Weerawila', 'Lunugamvehera', 'Kirinda'],
+  'Jaffna': ['Jaffna', 'Nallur', 'Point Pedro', 'Chavakachcheri', 'Kopay', 'Atchuvely', 'Karainagar', 'Kankesanthurai', 'Velanai'],
+  'Kilinochchi': ['Kilinochchi', 'Pallai', 'Paranthan', 'Mallavi', 'Tharmapuram', 'Kandavalai'],
+  'Mannar': ['Mannar', 'Murunkan', 'Pesalai', 'Thalaimannar', 'Madhu'],
+  'Vavuniya': ['Vavuniya', 'Nedunkeni', 'Omanthai', 'Cheddikulam', 'Parayanalankulam'],
+  'Mullaitivu': ['Mullaitivu', 'Puthukudiyiruppu', 'Oddusuddan', 'Maritimepattu', 'Thunukkai'],
+  'Batticaloa': ['Batticaloa', 'Kaluwanchikudy', 'Eravur', 'Valachchenai', 'Kattankudy', 'Chenkalady', 'Vakarai'],
+  'Ampara': ['Ampara', 'Kalmunai', 'Sainthamaruthu', 'Akkaraipattu', 'Sammanthurai', 'Dehiattakandiya', 'Uhana'],
+  'Trincomalee': ['Trincomalee', 'Kinniya', 'Mutur', 'Nilaveli', 'Kantale', 'China Bay'],
+  'Kurunegala': ['Kurunegala', 'Kuliyapitiya', 'Pannala', 'Mawathagama', 'Narammala', 'Alawwa', 'Polgahawela', 'Wariyapola', 'Nikaweratiya', 'Galgamuwa'],
+  'Puttalam': ['Puttalam', 'Chilaw', 'Wennappuwa', 'Nattandiya', 'Marawila', 'Anamaduwa', 'Madampe'],
+  'Anuradhapura': ['Anuradhapura', 'Kekirawa', 'Mihintale', 'Thambuttegama', 'Eppawala', 'Nochchiyagama'],
+  'Polonnaruwa': ['Polonnaruwa', 'Hingurakgoda', 'Medirigiriya', 'Dimbulagala'],
+  'Badulla': ['Badulla', 'Bandarawela', 'Haputale', 'Welimada', 'Mahiyanganaya', 'Diyatalawa', 'Passara'],
+  'Monaragala': ['Monaragala', 'Wellawaya', 'Bibile', 'Medagama', 'Siyambalanduwa'],
+  'Ratnapura': ['Ratnapura', 'Embilipitiya', 'Pelmadulla', 'Balangoda', 'Eheliyagoda', 'Kuruwita', 'Opanayaka'],
+  'Kegalle': ['Kegalle', 'Mawanella', 'Warakapola', 'Ruwanwella', 'Dehiowita', 'Deraniyagala'],
+};
 Widget _buildDropdown({
   required String hint,
   required String? value,

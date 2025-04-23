@@ -21,6 +21,11 @@ class _AddProductPageState extends State<AddProductPage> {
   String? selectedCategory;
   File? _image;
   final ImagePicker _picker = ImagePicker();
+  String? userDistrict;
+  String? userTown;
+
+
+
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
@@ -31,6 +36,62 @@ class _AddProductPageState extends State<AddProductPage> {
       });
     }
   }
+  Future<bool> _validateLocationBeforeAdd() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final data = doc.data();
+
+      if (data == null ||
+          !(data.containsKey('district') && data.containsKey('city')) ||
+          (data['district'] as String?)?.isEmpty != false ||
+          (data['city'] as String?)?.isEmpty != false) {
+        await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Location Required"),
+            content: const Text("You need to add your District and Town in your profile page before adding products."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // close the dialog
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HardwareShopOwnerPage()),
+                  );
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+        return false;
+      }
+
+      userDistrict = data['district'];
+      userTown = data['city'];
+      return true;
+    } catch (e) {
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Error"),
+          content: const Text("Failed to fetch location details. Please check your internet or try again."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
+  }
+
+
 
   // Function to save the product
   Future<void> _saveProduct() async {
@@ -62,7 +123,10 @@ class _AddProductPageState extends State<AddProductPage> {
     );
 
     try {
+
       User? user = FirebaseAuth.instance.currentUser;
+      final isValid = await _validateLocationBeforeAdd();
+      if (!isValid) return;
       if (user == null) throw Exception("User not logged in.");
 
       String filePath = 'products/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -77,6 +141,8 @@ class _AddProductPageState extends State<AddProductPage> {
         'description': descriptionController.text.trim(),
         'category': selectedCategory,
         'imageUrl': imageUrl,
+        'district': userDistrict,
+        'town': userTown,
         'createdAt': Timestamp.now(),
       });
 
