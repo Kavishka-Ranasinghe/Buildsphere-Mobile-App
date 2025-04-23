@@ -102,17 +102,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       builder: (ctx) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('View Profile'),
-              onTap: () {
-                Navigator.pop(ctx);
-                // You can push to a profile view page here
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Profile view not implemented")),
-                );
-              },
-            ),
             if (isOwner && !isSelf)
               ListTile(
                 leading: const Icon(Icons.remove_circle, color: Colors.red),
@@ -143,6 +132,7 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -90,8 +90,8 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
     final double aspectRatio = _controller.value.aspectRatio;
 
     // Limit height and width within the screen bounds
-    final double maxWidth = MediaQuery.of(context).size.width;
-    final double maxHeight = MediaQuery.of(context).size.height * 0.9;
+    final double maxWidth = MediaQuery.of(context).size.width * 1.5;
+    final double maxHeight = MediaQuery.of(context).size.height * 0.8;
 
     double displayWidth = maxWidth;
     double displayHeight = displayWidth / aspectRatio;
