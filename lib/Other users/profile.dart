@@ -11,6 +11,8 @@ import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:cometchat_sdk/cometchat_sdk.dart' as comet_chat;
+import 'package:http/http.dart' as http;
+
 
 
 
@@ -90,9 +92,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
+      Future<void> deleteCometChatUser(String uid) async {
+        const String appId = "272345917d37d43c";
+        const String region = "in"; // From CometChat dashboard
+        const String adminApiKey = "ce9288c50229728cde6a4a18c2d4075c0eb785ea";
+
+        final Uri url = Uri.parse("https://$appId.api-$region.cometchat.io/v3/users/$uid");
+
+        final response = await http.delete(
+          url,
+          headers: {
+            'accept': 'application/json',
+            'appId': appId,
+            'apiKey': adminApiKey,
+          },
+        );
+
+        if (response.statusCode == 200) {
+          debugPrint("✅ CometChat user $uid deleted successfully.");
+        } else {
+          debugPrint("❌ Failed to delete CometChat user: ${response.statusCode} ${response.body}");
+        }
+      }
+
+
+
+
       // 🔥 Step 4: Delete from Firebase Auth
       await user.delete();
-      
+
+      await deleteCometChatUser(_userId);
+
+
 
       // 🎉 Step 5: Show farewell popup
       showDialog(
