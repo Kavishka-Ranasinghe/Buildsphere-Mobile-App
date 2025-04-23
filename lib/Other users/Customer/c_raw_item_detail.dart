@@ -1,28 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'c_shop_detail.dart';
 
 class RawItemDetailScreen extends StatelessWidget {
-  final String itemName;
-  final String itemType;
-  final String price;
-  final String shopName;
-  final String shopAddress;
-  final String contactNumber;
-  final String imageUrl;
-  final String description;
+  final String productId;
 
-  const RawItemDetailScreen({
-    super.key,
-    required this.itemName,
-    required this.itemType,
-    required this.price,
-    required this.shopName,
-    required this.shopAddress,
-    required this.contactNumber,
-    required this.imageUrl,
-    required this.description,
-  });
+  const RawItemDetailScreen({super.key, required this.productId});
 
   void _callNumber(BuildContext context, String number) async {
     final Uri phoneUri = Uri.parse('tel:$number');
@@ -35,7 +19,7 @@ class RawItemDetailScreen extends StatelessWidget {
     }
   }
 
-  void _showFullImage(BuildContext context) {
+  void _showFullImage(BuildContext context, String imageUrl) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -50,7 +34,8 @@ class RawItemDetailScreen extends StatelessWidget {
             child: Image.network(
               imageUrl,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Image.asset('assets/images/item_placeholder.png'),
+              errorBuilder: (_, __, ___) =>
+                  Image.asset('assets/images/item_placeholder.png'),
             ),
           ),
         ),
@@ -94,119 +79,120 @@ class RawItemDetailScreen extends StatelessWidget {
         title: const Text('Item Details'),
         backgroundColor: Colors.green,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🖼️ Product Image (tap to zoom)
-            GestureDetector(
-              onTap: () => _showFullImage(context),
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                elevation: 5,
-                clipBehavior: Clip.antiAlias,
-                child: Image.network(
-                  imageUrl,
-                  height: 220,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      Image.asset('assets/images/item_placeholder.png', height: 220),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('products').doc(productId).snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // 📦 Box 01: Item Info
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildInfoCard(icon: Icons.shopping_bag, label: 'Item Name', value: itemName),
-                    _buildInfoCard(icon: Icons.category, label: 'Item Type', value: itemType),
-                    _buildInfoCard(icon: Icons.price_change, label: 'Price', value: 'LKR $price'),
-                    _buildInfoCard(
-                      icon: Icons.description,
-                      label: 'Description',
-                      value: description,
-                      iconColor: Colors.deepPurple,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+          if (!snapshot.data!.exists) {
+            return const Center(child: Text('Product not found'));
+          }
 
-            // 🏬 Box 02: Shop Info
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Shop Name (Clickable)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.store, color: Colors.blue),
-                      title: Text(
-                        shopName,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
-                      ),
-                      subtitle: const Text("Tap to view shop details"),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ShopDetailScreen(
-                              shopName: shopName,
-                              shopAddress: shopAddress,
-                              contactNumber: contactNumber,
-                            ),
-                          ),
-                        );
-                      },
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () => _showFullImage(context, data['imageUrl']),
+                  child: Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    elevation: 5,
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.network(
+                      data['imageUrl'] ?? '',
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Image.asset('assets/images/item_placeholder.png', height: 220),
                     ),
-                    const SizedBox(height: 10),
-                    // Contact
-                    GestureDetector(
-                      onTap: () => _callNumber(context, contactNumber),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.phone, color: Colors.green),
-                          const SizedBox(width: 10),
-                          Text(
-                            contactNumber,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoCard(
-                      icon: Icons.location_on,
-                      label: 'Shop Address',
-                      value: shopAddress,
-                      iconColor: Colors.red,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+
+                // 🔷 Box 01
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoCard(icon: Icons.shopping_bag, label: 'Item Name', value: data['name'] ?? 'N/A'),
+                        _buildInfoCard(icon: Icons.category, label: 'Item Type', value: data['category'] ?? 'N/A'),
+                        _buildInfoCard(icon: Icons.price_change, label: 'Price', value: 'LKR ${data['price'] ?? 'N/A'}'),
+                        _buildInfoCard(icon: Icons.description, label: 'Description', value: data['description'] ?? 'N/A', iconColor: Colors.deepPurple),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 🔷 Box 02
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.store, color: Colors.blue),
+                          title: Text(
+                            data['shopName'] ?? 'N/A',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
+                          ),
+                          subtitle: const Text("Tap to view shop details"),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ShopDetailScreen(
+                                  shopName: data['shopName'] ?? 'N/A',
+                                  shopAddress: data['address'] ?? '',
+                                  contactNumber: data['ownerTel'] ?? '',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () => _callNumber(context, data['ownerTel'] ?? ''),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.phone, color: Colors.green),
+                              const SizedBox(width: 10),
+                              Text(
+                                data['ownerTel'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInfoCard(icon: Icons.location_on, label: 'Shop Address', value: data['address'] ?? 'N/A', iconColor: Colors.red),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -88,16 +88,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_formKey.currentState!.validate()) {
       try {
         final updatedPhone = _phoneController.text.trim();
+        final updatedShopName = _nameController.text.trim();
+        final updatedAddress = _addressController.text.trim();
+        final updatedDistrict = _selectedDistrict;
+        final updatedCity = _selectedCity;
 
         // Update user's profile
         await FirebaseFirestore.instance.collection('users').doc(_userId).update({
-          'shopName': _nameController.text.trim(),
+          'shopName': updatedShopName,
           'email': _emailController.text.trim(),
           'phone': updatedPhone,
-          'address': _addressController.text.trim(),
+          'address': updatedAddress,
           'mapLink': _mapLinkController.text.trim(),
-          'district': _selectedDistrict,
-          'city': _selectedCity,
+          'district': updatedDistrict,
+          'city': updatedCity,
         });
 
         // ✅ Update all products posted by this user with the new phone number
@@ -106,7 +110,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         final batch = FirebaseFirestore.instance.batch();
         for (var doc in querySnapshot.docs) {
-          batch.update(doc.reference, {'ownerTel': updatedPhone});
+          batch.update(doc.reference, {
+            'ownerTel': updatedPhone,
+            'shopName': updatedShopName,
+            'address': updatedAddress,
+            'district': updatedDistrict,
+            'town': updatedCity,
+          });
         }
         await batch.commit();
 
