@@ -3,9 +3,76 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../profile.dart';
 import '../app_drawer.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
+import 'dart:io';
 
-class ItemShoppingScreen extends StatelessWidget {
+class ItemShoppingScreen extends StatefulWidget {
   const ItemShoppingScreen({super.key});
+
+  @override
+  State<ItemShoppingScreen> createState() => _ItemShoppingScreenState();
+}
+
+class _ItemShoppingScreenState extends State<ItemShoppingScreen> {
+
+  final TextEditingController searchController = TextEditingController();
+
+  Future<void> _scanAndDetectLabel(BuildContext context) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile == null) return;
+
+    final inputImage = InputImage.fromFile(File(pickedFile.path));
+    final imageLabeler = ImageLabeler(
+      options: ImageLabelerOptions(confidenceThreshold: 0.7),
+    );
+
+    final labels = await imageLabeler.processImage(inputImage);
+    imageLabeler.close();
+
+    if (labels.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No recognizable item found.")),
+      );
+      return;
+    }
+
+    final topLabels = labels.take(3).toList();
+
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Detected Items",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              ...topLabels.map((label) => ListTile(
+                title: Text(label.label),
+                onTap: () {
+                  setState(() {
+                    searchController.text = label.label;
+                  });
+                  Navigator.pop(context);
+                },
+              )),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
 
   // Function to search for an item
   void _searchItem(String query, BuildContext context) async {
@@ -38,7 +105,7 @@ class ItemShoppingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    TextEditingController searchController = TextEditingController();
+
 
     return Scaffold(
       appBar: AppBar(
@@ -152,12 +219,8 @@ class ItemShoppingScreen extends StatelessWidget {
                               _buildFilledButton(
                                 icon: Icons.camera_alt,
                                 label: "Scan Item",
-                                onPressed: () {
-                                  // Placeholder for Google Vision API functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Opening camera to scan item...")),
-                                  );
-                                },
+                                onPressed: () => _scanAndDetectLabel(context),
+
                               ),
                             ],
                           ),
