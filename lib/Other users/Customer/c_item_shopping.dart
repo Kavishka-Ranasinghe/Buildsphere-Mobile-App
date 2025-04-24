@@ -89,7 +89,7 @@ class _ItemShoppingScreenState extends State<ItemShoppingScreen> {
       }
 
       final List<String> topLabels = labels
-          .take(3)
+          .take(5)
           .map<String>((label) => label['description'] as String)
           .toList();
 
