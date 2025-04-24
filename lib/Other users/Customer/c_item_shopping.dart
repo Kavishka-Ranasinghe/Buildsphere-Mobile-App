@@ -6,6 +6,12 @@ import '../app_drawer.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+// vision api key - AIzaSyDnCk4toEnmEBG90v6Gg22ioK2ZSoRpQbo
+
+
+
 
 class ItemShoppingScreen extends StatefulWidget {
   const ItemShoppingScreen({super.key});
@@ -18,59 +24,117 @@ class _ItemShoppingScreenState extends State<ItemShoppingScreen> {
 
   final TextEditingController searchController = TextEditingController();
 
-  Future<void> _scanAndDetectLabel(BuildContext context) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    if (pickedFile == null) return;
+  Future<void> _scanItemWithVisionAPI(BuildContext context, File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
 
-    final inputImage = InputImage.fromFile(File(pickedFile.path));
-    final imageLabeler = ImageLabeler(
-      options: ImageLabelerOptions(confidenceThreshold: 0.7),
-    );
+      const String apiKey = 'AIzaSyDnCk4toEnmEBG90v6Gg22ioK2ZSoRpQbo'; // your API key
+      final Uri url = Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$apiKey');
 
-    final labels = await imageLabeler.processImage(inputImage);
-    imageLabeler.close();
+      print("📤 Sending request to Vision API...");
+      print("🖼️ Base64 Image Size: ${base64Image.length}");
 
-    if (labels.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No recognizable item found.")),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Please wait..."),
+              ],
+            ),
+          );
+        },
       );
-      return;
-    }
 
-    final topLabels = labels.take(3).toList();
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "requests": [
+            {
+              "image": {"content": base64Image},
+              "features": [
+                {"type": "LABEL_DETECTION", "maxResults": 5}
+              ]
+            }
+          ]
+        }),
+      );
 
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Detected Items",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              ...topLabels.map((label) => ListTile(
-                title: Text(label.label),
-                onTap: () {
-                  setState(() {
-                    searchController.text = label.label;
-                  });
-                  Navigator.pop(context);
-                },
-              )),
-            ],
-          ),
+
+      print("✅ Response status: ${response.statusCode}");
+
+      if (response.statusCode != 200) {
+        print("❌ Vision API Error: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${response.statusCode}")),
         );
-      },
-    );
+        return;
+      }
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      final labels = data['responses'][0]['labelAnnotations'];
+
+      if (labels == null || labels.isEmpty) {
+        print("⚠️ No labels found in response.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No recognizable item found.")),
+        );
+        return;
+      }
+
+      final List<String> topLabels = labels
+          .take(3)
+          .map<String>((label) => label['description'] as String)
+          .toList();
+
+      print("🎯 Top Labels: $topLabels");
+      if (Navigator.canPop(context)) Navigator.pop(context);
+
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (BuildContext context) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Detected Items", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                ...topLabels.map((label) => ListTile(
+                  title: Text(label),
+                  onTap: () {
+                    setState(() {
+                      searchController.text = label;
+                    });
+                    Navigator.pop(context);
+                  },
+                )),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      print("❌ Exception in Vision API: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Something went wrong.")),
+      );
+    }
   }
+
+
+
+
+
 
 
 
@@ -219,9 +283,20 @@ class _ItemShoppingScreenState extends State<ItemShoppingScreen> {
                               _buildFilledButton(
                                 icon: Icons.camera_alt,
                                 label: "Scan Item",
-                                onPressed: () => _scanAndDetectLabel(context),
+                                onPressed: () async {
+                                  final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+                                  if (pickedFile != null) {
+                                    final imageFile = File(pickedFile.path);
+                                    _scanItemWithVisionAPI(context, imageFile); // ✅ now passing both args
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("No image selected.")),
+                                    );
+                                  }
+                                },
 
                               ),
+
                             ],
                           ),
                         ],
