@@ -41,6 +41,7 @@ dependencies:
   image_picker: ^1.0.5
   cometchat_sdk: ^4.0.19
   cometchat_chat_uikit: ^5.0.0
+  cometchat_calls_uikit: ^5.0.0-beta.1
   cometchat: ^3.0.13
   url_launcher: ^6.3.1  # Version as of now; check for latest version
   path_provider: ^2.1.5

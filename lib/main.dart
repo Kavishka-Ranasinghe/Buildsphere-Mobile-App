@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cometchat_chat_uikit/cometchat_chat_uikit.dart';
 import 'splash_screen.dart'; // Your custom splash screen
+import 'package:cometchat_calls_uikit/cometchat_calls_uikit.dart'; // ✅ Required for callingExtension
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,8 @@ void main() async {
     ..region = region
     ..appId = appID
     ..authKey = aukey// Replace with your CometChat Auth Key
+    ..extensions = CometChatUIKitChatExtensions.getDefaultExtensions()
+    ..callingExtension = CometChatCallingExtension() // 🔥 Enabling call UI
   )
       .build();
 
@@ -53,6 +57,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: CallNavigationContext.navigatorKey, // ✅ Required for call overlay
       title: 'BuildSphere',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

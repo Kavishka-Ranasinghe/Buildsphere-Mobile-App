@@ -8,10 +8,13 @@ import 'package:intl/intl.dart';
 import 'group_info_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'pdf_viewer_page.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player/video_player.dart' as vp;
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:cometchat_calls_uikit/cometchat_calls_uikit.dart';
+
+
 
 
 class VideoPlayerView extends StatefulWidget {
@@ -24,7 +27,7 @@ class VideoPlayerView extends StatefulWidget {
 }
 
 class _VideoPlayerViewState extends State<VideoPlayerView> {
-  late VideoPlayerController _controller;
+  late vp.VideoPlayerController _controller;
   bool _isPlaying = false;
   bool _isLoading = true;
 
@@ -42,12 +45,12 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
 
       if (await file.exists()) {
         // ✅ Use cached file
-        _controller = VideoPlayerController.file(file);
+        _controller = vp.VideoPlayerController.file(file);
       } else {
         // ⬇️ Download and cache
         final response = await http.get(Uri.parse(widget.url));
         await file.writeAsBytes(response.bodyBytes);
-        _controller = VideoPlayerController.file(file);
+        _controller = vp.VideoPlayerController.file(file);
       }
 
       await _controller.initialize();
@@ -107,7 +110,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
         height: displayHeight,
         child: AspectRatio(
           aspectRatio: aspectRatio,
-          child: VideoPlayer(_controller),
+          child: vp.VideoPlayer(_controller),
         ),
       ),
     );
@@ -134,10 +137,10 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
             const SizedBox(height: 12),
             SizedBox(
               height: 15, // 👈 Increase this value for a thicker progress bar
-              child: VideoProgressIndicator(
+              child: vp.VideoProgressIndicator(
                 _controller,
                 allowScrubbing: true,
-                colors: VideoProgressColors(
+                colors: vp.VideoProgressColors(
                   playedColor: Colors.blue,
                   bufferedColor: Colors.grey,
                   backgroundColor: Colors.white30,
@@ -436,17 +439,42 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => GroupInfoPage(groupId: widget.roomId),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupInfoPage(groupId: widget.roomId),
+                  ),
+                );
+              },
+              child: Text(widget.roomName),
+            ),
+            CometChatCallButtons(
+              group: Group(
+                guid: widget.roomId,
+                name: widget.roomName,
+                type: GroupTypeConstants.public, // or private
               ),
-            );
-          },
-          child: Text(widget.roomName),
+              callButtonsStyle: CometChatCallButtonsStyle(
+                voiceCallIconColor: Colors.green,
+                videoCallIconColor: Colors.blue,
+                voiceCallButtonColor: Colors.white,
+                videoCallButtonColor: Colors.white,
+                voiceCallButtonBorderRadius: BorderRadius.circular(12),
+                videoCallButtonBorderRadius: BorderRadius.circular(12),
+                voiceCallButtonBorder: BorderSide(color: Colors.grey, width: 1),
+                videoCallButtonBorder: BorderSide(color: Colors.grey, width: 1),
+              ),
+            )
+
+
+          ],
         ),
+
       ),
       body: Stack(
         children: [
