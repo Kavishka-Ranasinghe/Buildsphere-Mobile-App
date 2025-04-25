@@ -116,13 +116,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
 
-
+      await deleteCometChatUser(_userId);
 
       // 🔥 Step 4: Delete from Firebase Auth
       await user.delete();
 
-      await deleteCometChatUser(_userId);
-
+      
 
 
       // 🎉 Step 5: Show farewell popup
