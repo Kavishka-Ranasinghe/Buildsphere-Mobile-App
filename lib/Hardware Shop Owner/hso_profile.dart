@@ -494,6 +494,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 10),
                       TextFormField(
                         controller: _emailController,
+                        readOnly: true, // ✅ Make it read-only
+                        enabled: false, // ❌ Prevent editing
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
                           labelText: 'Shop Email',

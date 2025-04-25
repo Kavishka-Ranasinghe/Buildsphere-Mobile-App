@@ -572,6 +572,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Email Input
                       TextField(
                         controller: _emailController,
+                        readOnly: true, // ✅ Make it read-only
+                        enabled: false, // ❌ Prevent editing
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
