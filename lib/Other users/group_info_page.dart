@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
+
 
 class GroupInfoPage extends StatefulWidget {
   final String groupId;
@@ -18,6 +20,8 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
   List<GroupMember> groupMembers = [];
   User? currentUser;
   bool _isLoading = true;
+  Timer? _refreshTimer;
+
 
   @override
   void initState() {
@@ -25,7 +29,21 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
     fetchGroupInfo();
     fetchGroupMembers();
     fetchCurrentUser();
+
+    // Auto-refresh every 2 seconds
+    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      fetchGroupInfo();
+      fetchGroupMembers();
+    });
+
   }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel(); // ✅ Stop timer
+    super.dispose();
+  }
+
 
   Future<void> fetchGroupInfo() async {
     try {
