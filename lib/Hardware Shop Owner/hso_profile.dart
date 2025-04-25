@@ -122,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Profile and products updated successfully")),
+            const SnackBar(content: Text("Profile  updated successfully")),
           );
         }
       } catch (e) {

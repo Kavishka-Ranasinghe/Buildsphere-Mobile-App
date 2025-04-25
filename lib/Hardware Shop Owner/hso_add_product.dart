@@ -56,7 +56,7 @@ class _AddProductPageState extends State<AddProductPage> {
           (data['city'] as String?)?.isEmpty != false ||
           (data['phone'] as String?)?.isEmpty != false ||
           (data['shopName'] as String?)?.isEmpty != false ||
-          (data['description'] as String?)?.isEmpty != false ||
+         // (data['description'] as String?)?.isEmpty != false ||
           (data['address'] as String?)?.isEmpty != false) {
         await showDialog(
           context: context,

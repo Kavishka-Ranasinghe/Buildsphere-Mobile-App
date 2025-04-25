@@ -121,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // 🔥 Step 4: Delete from Firebase Auth
       await user.delete();
 
-      
+
 
 
       // 🎉 Step 5: Show farewell popup
