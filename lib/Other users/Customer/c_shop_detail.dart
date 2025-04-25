@@ -37,7 +37,14 @@ class ShopDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Shop Details'),
         backgroundColor: Colors.green,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // 👈 Goes back to the previous screen
+          },
+        ),
       ),
+
       drawer: const AppDrawer(),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('users').doc(ownerId).snapshots(),
