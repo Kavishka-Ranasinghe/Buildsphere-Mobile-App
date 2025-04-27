@@ -121,27 +121,36 @@ class ShopDetailScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // 🗺️ Google Maps Section
-                GestureDetector(
-                  onTap: mapLink.isNotEmpty ? () => _openGoogleMaps(context, mapLink) : null,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.location_pin, color: Colors.red, size: 30),
-                      const SizedBox(width: 8),
-                      mapLink.isNotEmpty
-                          ? const Text(
+                // 🗺️ Google Maps Section
+                if (mapLink.isNotEmpty)
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openGoogleMaps(context, mapLink),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.location_pin),
+                      label: const Text(
                         'View on Google Maps',
-                        style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline),
-                      )
-                          : const Text(
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  )
+                else
+                  Row(
+                    children: const [
+                      Icon(Icons.location_pin, color: Colors.red, size: 30),
+                      SizedBox(width: 8),
+                      Text(
                         'No location added',
                         style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     ],
                   ),
-                ),
+
               ],
             ),
           );

@@ -265,7 +265,7 @@ class _AddProductPageState extends State<AddProductPage> {
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             ),
-                            items: ['Cement', 'Soil', 'Brick', 'Pebbles']
+                            items: ['Cement', 'Sand', 'Bricks','Gravel','Concrete mix','Steel bars','Wood','Roofing sheets','PVC pipes and fittings','Electrical cables','Paint','Wall Putty']
                                 .map((category) => DropdownMenuItem(
                               value: category,
                               child: Text(category),

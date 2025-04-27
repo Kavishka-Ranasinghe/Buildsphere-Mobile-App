@@ -108,7 +108,7 @@ class _RawSupplyScreenState extends State<RawSupplyScreen> {
   };
 
 
-  final List<String> filters = ['All', 'Cement', 'Soil', 'Brick', 'Pebbles']; // Added "All"
+  final List<String> filters = ['All', 'Cement', 'Sand', 'Bricks', 'Gravel','Concrete mix','Steel bars','Wood','Roofing sheets','PVC pipes and fittings','Electrical cables','Paint','Wall Putty']; // Added "All"
 
   // Function to redirect to the phone app
   void _callNumber(String number) async {

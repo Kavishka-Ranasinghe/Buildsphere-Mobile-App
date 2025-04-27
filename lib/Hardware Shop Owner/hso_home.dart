@@ -16,7 +16,7 @@ class HardwareShopOwnerPage extends StatefulWidget {
 
 class _HardwareShopOwnerPageState extends State<HardwareShopOwnerPage> {
   String selectedCategory = 'All';
-  final List<String> categories = ['All', 'Cement', 'Soil', 'Brick', 'Pebbles'];
+  final List<String> categories = ['All', 'Cement', 'Sand', 'Bricks', 'Gravel','Concrete mix','Steel bars','Wood','Roofing sheets','PVC pipes and fittings','Electrical cables','Paint','Wall Putty'];
 
   @override
   Widget build(BuildContext context) {
