@@ -108,10 +108,9 @@ class _SignUpPageState extends State<SignUpPage> {
     return emailRegex.hasMatch(email);
   }
 
-  Future<void> cometChatLogin() async {
+  Future<void> cometChatLogin(firebase_auth.User? firebaseUser) async {
     String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e";
 
-    firebase_auth.User? firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
 
     String uid = firebaseUser.uid;
@@ -136,6 +135,7 @@ class _SignUpPageState extends State<SignUpPage> {
         });
   }
 
+
   Future<void> _signUpWithFirebase() async {
     try {
       firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance
@@ -156,9 +156,10 @@ class _SignUpPageState extends State<SignUpPage> {
 
         await user.updateDisplayName(_nameController.text.trim());
         await user.reload();
+        firebase_auth.User? updatedUser = firebase_auth.FirebaseAuth.instance.currentUser; // 🔥 re-fetch updated user
 
         if (_selectedRole == 'Client' || _selectedRole == 'Engineer' || _selectedRole == 'Planner') {
-          await cometChatLogin();
+          await cometChatLogin(updatedUser);
           _showSignUpSuccessDialog();
         } else {
           _waitapproval();
