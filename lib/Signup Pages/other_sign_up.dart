@@ -156,6 +156,11 @@ class _SignUpPageState extends State<SignUpPage> {
 
         await user.updateDisplayName(_nameController.text.trim());
         await user.reload();
+
+
+// ✅ Wait 1-2 seconds to ensure update propagates
+        await Future.delayed(const Duration(seconds: 4));
+
         firebase_auth.User? updatedUser = firebase_auth.FirebaseAuth.instance.currentUser; // 🔥 re-fetch updated user
 
         if (_selectedRole == 'Client' || _selectedRole == 'Engineer' || _selectedRole == 'Planner') {
