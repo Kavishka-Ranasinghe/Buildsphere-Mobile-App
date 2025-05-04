@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   bool _obscurePassword = true;
   final String adminEmail = "Buildsphere@gmail.com";
-  final String adminPassword = "adminpassword";
+  final String adminPassword = "password";
   bool _checkingAuth = true;
   bool _isConnected = true;
 
@@ -99,6 +99,18 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    if (email == adminEmail && password == adminPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Login Successful")),
+      );
+      await Future.delayed(const Duration(seconds: 1));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminPage()),
+      );
+      return;
+    }
+
     try {
       firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
@@ -111,16 +123,6 @@ class _LoginPageState extends State<LoginPage> {
         );
         await Future.delayed(const Duration(seconds: 1));
 
-        // 👉 Check if logged in user is admin
-        if (user.email == "buildsphere@gmail.com") {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const AdminPage()),
-          );
-          return;
-        }
-
-        // 👉 Normal user logic
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -157,7 +159,6 @@ class _LoginPageState extends State<LoginPage> {
       );
     }
   }
-
 
   Future<void> cometChatLogin() async {
     String authKey = "6d0dad629d71caa8a4f436f2920daa048feaaa8e";
