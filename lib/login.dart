@@ -22,6 +22,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _obscurePassword = true;
+  final String adminEmail = "Buildsphere@gmail.com";
+  final String adminPassword = "adminpassword";
   bool _checkingAuth = true;
   bool _isConnected = true;
 
@@ -110,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
         await Future.delayed(const Duration(seconds: 1));
 
         // 👉 Check if logged in user is admin
-        if (user.email?.toLowerCase() == "buildsphere@gmail.com"){
+        if (user.email == "buildsphere@gmail.com") {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const AdminPage()),
@@ -118,21 +120,13 @@ class _LoginPageState extends State<LoginPage> {
           return;
         }
 
+        // 👉 Normal user logic
         DocumentSnapshot userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
 
         if (userDoc.exists) {
-          // 🔥 CHECK IF DISABLED
-          if (userDoc['disabled'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Account disabled by admin")),
-            );
-            await firebase_auth.FirebaseAuth.instance.signOut();
-            return;
-          }
-
           String userRole = userDoc['role'];
 
           if (userRole == 'Client' || userRole == 'Engineer' || userRole == 'Planner') {
@@ -156,7 +150,6 @@ class _LoginPageState extends State<LoginPage> {
             const SnackBar(content: Text("User data not found.")),
           );
         }
-
       }
     } on firebase_auth.FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
