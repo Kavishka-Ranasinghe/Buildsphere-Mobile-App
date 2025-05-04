@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'Signup Pages/other_sign_up.dart';
 import 'Other users/room_section.dart';
 import 'Hardware Shop Owner/hso_home.dart';
-import 'Admin/admin_dash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cometchat_sdk/cometchat_sdk.dart';
@@ -71,11 +70,6 @@ class _LoginPageState extends State<LoginPage> {
               context,
               MaterialPageRoute(builder: (context) => const HardwareShopOwnerPage()),
             );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const AdminPage()),
-            );
           }
         }
       } catch (e) {
@@ -99,17 +93,6 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    if (email == adminEmail && password == adminPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Successful")),
-      );
-      await Future.delayed(const Duration(seconds: 1));
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AdminPage()),
-      );
-      return;
-    }
 
     try {
       firebase_auth.UserCredential userCredential = await firebase_auth.FirebaseAuth.instance
