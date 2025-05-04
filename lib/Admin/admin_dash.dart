@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -8,144 +9,170 @@ class AdminPage extends StatefulWidget {
 }
 
 class _AdminPageState extends State<AdminPage> {
-  // Example users data
-  final Map<String, List<Map<String, dynamic>>> usersData = {
-    'Client': [
-      {'id': '1', 'name': 'John Doe', 'email': 'john@example.com'},
-      {'id': '2', 'name': 'Jane Smith', 'email': 'jane@example.com'},
-    ],
-    'Planner': [
-      {'id': '3', 'name': 'Michael Johnson', 'email': 'michael@example.com'},
-    ],
-    'Engineer': [
-      {'id': '4', 'name': 'Emma Brown', 'email': 'emma@example.com'},
-    ],
-    'Hardware Shop Owner': [
-      {'id': '5', 'name': 'David Wilson', 'email': 'david@example.com'},
-    ],
-  };
-
   String? selectedCategory;
-  Map<String, dynamic>? selectedUser;
+  DocumentSnapshot? selectedUser;
+  int productCount = 0;
+  bool loadingProducts = false;
 
-  // Function to remove a user
-  void _removeUser(String category, String userId) {
+  final List<String> userRoles = ['Client', 'Planner', 'Engineer', 'Hardware Shop Owner'];
+
+  // Fetch users from Firestore based on role
+  Stream<QuerySnapshot> getUsersByRole(String role) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: role)
+        .snapshots();
+  }
+
+  // Count products added by hardware shop owner
+  Future<int> getProductCount(String ownerId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where('ownerId', isEqualTo: ownerId)
+        .get();
+    return querySnapshot.size;
+  }
+
+  // Delete user (and products if hardware shop owner)
+  Future<void> deleteUserAndData(DocumentSnapshot userDoc) async {
+    final userId = userDoc.id;
+    final role = userDoc['role'];
+
+    if (role == 'Hardware Shop Owner') {
+      // Delete all products by owner
+      final products = await FirebaseFirestore.instance
+          .collection('products')
+          .where('ownerId', isEqualTo: userId)
+          .get();
+      for (var product in products.docs) {
+        await product.reference.delete();
+      }
+    }
+
+    // Delete user document
+    await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+
     setState(() {
-      usersData[category]?.removeWhere((user) => user['id'] == userId);
-      selectedUser = null; // Reset selected user after removal
+      selectedUser = null;
+      productCount = 0;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('User removed successfully!')),
+      const SnackBar(content: Text('User and associated data deleted!')),
     );
-  }
-
-  // Function to cancel user selection
-  void _cancelSelection() {
-    setState(() {
-      selectedUser = null; // Deselect the user
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Admin Panel',
-          style: TextStyle(
-            fontSize: 35,
-            fontWeight: FontWeight.bold,
-            color: Colors.yellowAccent,
-          ),
-        ),
+        title: const Text('Admin Panel'),
         backgroundColor: Colors.green,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dropdown to select user category
-            const Text("Select User Type"),
+            // Category Dropdown
             DropdownButtonFormField<String>(
               value: selectedCategory,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              ),
-              items: usersData.keys.map((category) {
-                return DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                );
-              }).toList(),
+              hint: const Text("Select User Role"),
+              items: userRoles.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
               onChanged: (value) {
                 setState(() {
                   selectedCategory = value;
-                  selectedUser = null; // Reset selected user when category changes
+                  selectedUser = null;
+                  productCount = 0;
                 });
               },
+              decoration: const InputDecoration(border: OutlineInputBorder()),
             ),
             const SizedBox(height: 20),
 
-            // Display users based on selected category
             if (selectedCategory != null)
               Expanded(
-                child: ListView(
-                  children: usersData[selectedCategory]!.map((user) {
-                    return ListTile(
-                      title: Text(user['name']),
-                      subtitle: Text(user['email']),
-                      trailing: const Icon(Icons.arrow_forward),
-                      onTap: () {
-                        setState(() {
-                          selectedUser = user;
-                        });
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: getUsersByRole(selectedCategory!),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+                    final users = snapshot.data!.docs;
+                    if (users.isEmpty) return const Text("No users found for this role.");
+
+                    return ListView.builder(
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        final user = users[index];
+                        return ListTile(
+                          title: Text(user['name'] ?? 'No Name'),
+                          subtitle: Text(user['email'] ?? 'No Email'),
+                          trailing: const Icon(Icons.arrow_forward),
+                          onTap: () async {
+                            setState(() {
+                              selectedUser = user;
+                              productCount = 0;
+                              loadingProducts = true;
+                            });
+
+                            if (user['role'] == 'Hardware Shop Owner') {
+                              final count = await getProductCount(user.id);
+                              setState(() {
+                                productCount = count;
+                                loadingProducts = false;
+                              });
+                            } else {
+                              loadingProducts = false;
+                            }
+                          },
+                        );
                       },
                     );
-                  }).toList(),
+                  },
                 ),
               ),
 
-            // Show selected user details
             if (selectedUser != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Card(
-                  elevation: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("User Details", style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 10),
-                        Text("Name: ${selectedUser!['name']}"),
-                        Text("Email: ${selectedUser!['email']}"),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // Remove User Button
-                            ElevatedButton(
-                              onPressed: () {
-                                _removeUser(selectedCategory!, selectedUser!['id']);
-                              },
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                              child: const Text("Remove User"),
-                            ),
-
-                            // Cancel Button
-                            ElevatedButton(
-                              onPressed: _cancelSelection,
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
-                              child: const Text("Cancel"),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+              Card(
+                margin: const EdgeInsets.only(top: 20),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("User Details", style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 10),
+                      Text("Name: ${selectedUser!['name']}"),
+                      Text("Email: ${selectedUser!['email']}"),
+                      Text("Role: ${selectedUser!['role']}"),
+                      if (selectedUser!.data().toString().contains('phone'))
+                        Text("Phone: ${selectedUser!['phone']}"),
+                      if (selectedUser!.data().toString().contains('address'))
+                        Text("Address: ${selectedUser!['address']}"),
+                      const SizedBox(height: 10),
+                      if (selectedUser!['role'] == 'Hardware Shop Owner')
+                        loadingProducts
+                            ? const Text("Loading product count...")
+                            : Text("Total Products: $productCount"),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => deleteUserAndData(selectedUser!),
+                            icon: const Icon(Icons.delete_forever),
+                            label: const Text("Delete User"),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => setState(() => selectedUser = null),
+                            icon: const Icon(Icons.cancel),
+                            label: const Text("Cancel"),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+                          ),
+                        ],
+                      )
+                    ],
                   ),
                 ),
               ),
