@@ -3,37 +3,33 @@ import React, { useEffect, useState } from 'react';
 import { db } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from './firebase';
+import { app } from './firebase';  // ✅ ensure you're exporting `app` in firebase.js
 import { useParams, useNavigate } from 'react-router-dom';
 
 function UserDetail() {
-  const { uid } = useParams(); // param from URL
+  const { uid } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const functions = getFunctions(app); // initialize functions
+  const functions = getFunctions(app); // ✅ initialize Cloud Functions
 
   const placeholder = '/profile_avatar.png';
 
-  // ✅ fetch user data by document ID
   useEffect(() => {
-    const fetchUser = async () => {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        setUser({
-          id: userDoc.id,              // 👈 this is the document ID (== auth UID)
-          ...userDoc.data(),           // other fields
-        });
-      }
-    };
     fetchUser();
-  }, [uid]); // ✅ added uid as dependency
+  }, []);
+
+  const fetchUser = async () => {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+      setUser({ id: userDoc.id, ...userDoc.data() });
+    }
+  };
 
   const handleDelete = async () => {
     if (window.confirm("Delete this user?")) {
       try {
-        const deleteUserData = httpsCallable(functions, 'deleteUserData');
-        console.log("🔥 Sending uid to backend:", user.id); // debug log
-        await deleteUserData({ uid: user.id });  // 👈 send correct param
+        const deleteUserData = httpsCallable(functions, 'deleteUserData'); // ✅ calling our function
+        await deleteUserData({ uid: user.id });
         alert("✅ User deleted from Firebase!");
         navigate('/dashboard');
       } catch (error) {

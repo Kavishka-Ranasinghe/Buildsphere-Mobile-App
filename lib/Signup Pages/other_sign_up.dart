@@ -149,7 +149,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if (user != null) {
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'uid': user.uid,
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'role': _selectedRole,
@@ -158,7 +157,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
         await user.updateDisplayName(_nameController.text.trim());
         await user.reload();
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 4));
         firebase_auth.User? updatedUser = firebase_auth.FirebaseAuth.instance.currentUser; // 🔥 re-fetch updated user
 
         if (_selectedRole == 'Client' || _selectedRole == 'Engineer' || _selectedRole == 'Planner') {
