@@ -9,8 +9,6 @@ function UserDetail() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
 
-  const placeholder = '/profile_avatar.png'; // ✅ same placeholder as UserTile
-
   useEffect(() => {
     fetchUser();
   }, []);
@@ -40,9 +38,9 @@ function UserDetail() {
     <div style={{ padding: '20px' }}>
       <h1>{user.name}</h1>
       <img
-        src={user.profileImage || placeholder}
+        src={user.profileImage || 'https://via.placeholder.com/150'}
         alt="profile"
-        style={{ width: 150, height: 150, borderRadius: '50%', objectFit: 'cover' }}
+        style={{ width: 150, height: 150, borderRadius: '50%' }}
       />
       <p>Email: {user.email}</p>
       <p>Role: {user.role}</p>
