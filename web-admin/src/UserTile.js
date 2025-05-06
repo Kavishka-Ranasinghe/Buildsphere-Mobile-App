@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom';
 function UserTile({ user }) {
   const navigate = useNavigate();
 
-  // ✅ fallback image from /public folder
-  const placeholder = '/profile_avatar.png';  // make sure image exists in /public
+  const placeholder = 'https://via.placeholder.com/100x100.png?text=No+Image';
 
   return (
     <div
@@ -24,7 +23,7 @@ function UserTile({ user }) {
       <img
         src={user.profileImage || placeholder}
         alt="profile"
-        style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover' }}
+        style={{ width: 100, height: 100, borderRadius: '50%' }}
       />
       <h4>{user.name}</h4>
     </div>
