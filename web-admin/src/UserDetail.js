@@ -1,15 +1,18 @@
 // src/components/UserDetail.js
 import React, { useEffect, useState } from 'react';
 import { db } from './firebase';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from './firebase';  // ✅ ensure you're exporting `app` in firebase.js
 import { useParams, useNavigate } from 'react-router-dom';
 
 function UserDetail() {
   const { uid } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const functions = getFunctions(app); // ✅ initialize Cloud Functions
 
-  const placeholder = '/profile_avatar.png'; // ✅ same placeholder as UserTile
+  const placeholder = '/profile_avatar.png';
 
   useEffect(() => {
     fetchUser();
@@ -25,11 +28,12 @@ function UserDetail() {
   const handleDelete = async () => {
     if (window.confirm("Delete this user?")) {
       try {
-        await deleteDoc(doc(db, 'users', uid));
-        alert("Deleted from Firestore!");
+        const deleteUserData = httpsCallable(functions, 'deleteUserData'); // ✅ calling our function
+        await deleteUserData({ uid: user.id });
+        alert("✅ User deleted from Firebase!");
         navigate('/dashboard');
-      } catch (e) {
-        alert("Error deleting user: " + e.message);
+      } catch (error) {
+        alert("❌ Error deleting user: " + error.message);
       }
     }
   };
