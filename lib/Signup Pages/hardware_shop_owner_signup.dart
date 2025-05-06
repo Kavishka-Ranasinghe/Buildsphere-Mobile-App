@@ -123,6 +123,7 @@ class _HardwareShopOwnerSignUpPageState extends State<HardwareShopOwnerSignUpPag
           'phone': _shopPhoneController.text.trim(),
           'role': 'Hardware Shop Owner',
           'createdAt': Timestamp.now(),
+          'uid': user.uid,  // ✅ ADD THIS
         });
 
         await user.updateDisplayName(_shopNameController.text.trim());
