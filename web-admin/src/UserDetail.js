@@ -1,7 +1,7 @@
 // src/components/UserDetail.js
 import React, { useEffect, useState } from 'react';
 import { db } from './firebase';
-import { doc, getDoc} from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from './firebase';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -18,7 +18,6 @@ function UserDetail() {
   useEffect(() => {
     const fetchUser = async () => {
       const userDoc = await getDoc(doc(db, 'users', uid));
-      console.log("🔥 UID received:", uid); // 👈 add this log
       if (userDoc.exists()) {
         setUser({
           id: userDoc.id,              // 👈 this is the document ID (== auth UID)
@@ -30,12 +29,11 @@ function UserDetail() {
   }, [uid]); // ✅ added uid as dependency
 
   const handleDelete = async () => {
-    const userDoc = await getDoc(doc(db, 'users', uid));
     if (window.confirm("Delete this user?")) {
       try {
         const deleteUserData = httpsCallable(functions, 'deleteUserData');
-        console.log("🔥 check user id before delete:", userDoc.id); // debug log
-        await deleteUserData({ uid: user.id });  // doc id == uid
+        console.log("🔥 Sending uid to backend:", user.id); // debug log
+        await deleteUserData({ uid: user.id });  // 👈 send correct param
         alert("✅ User deleted from Firebase!");
         navigate('/dashboard');
       } catch (error) {
