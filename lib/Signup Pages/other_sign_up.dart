@@ -114,7 +114,7 @@ class _SignUpPageState extends State<SignUpPage> {
     if (firebaseUser == null) return;
 
     String uid = firebaseUser.uid;
-    String name = _nameController.text.trim();  // 🔥 get name directly from textbox
+    String name = firebaseUser.displayName ?? "Anonymous User";
 
     comet_chat.User user = comet_chat.User(uid: uid, name: name);
 
@@ -134,7 +134,6 @@ class _SignUpPageState extends State<SignUpPage> {
           print("❌ CometChat login failed: ${e.message}");
         });
   }
-
 
 
   Future<void> _signUpWithFirebase() async {
@@ -157,7 +156,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
         await user.updateDisplayName(_nameController.text.trim());
         await user.reload();
-        await Future.delayed(const Duration(seconds: 4));
         firebase_auth.User? updatedUser = firebase_auth.FirebaseAuth.instance.currentUser; // 🔥 re-fetch updated user
 
         if (_selectedRole == 'Client' || _selectedRole == 'Engineer' || _selectedRole == 'Planner') {
