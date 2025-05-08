@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 function UserTile({ user }) {
   const placeholder = '/profile_avatar.png';
@@ -13,6 +14,12 @@ function UserTile({ user }) {
       <h3 style={{ fontSize: '1.2em', margin: '10px 0' }}>{user.name || 'No Name'}</h3>
       <p style={{ margin: '5px 0' }}>Email: {user.email || 'No Email'}</p>
       <p style={{ margin: '5px 0' }}>Role: {user.role || 'N/A'}</p>
+      <Link
+        to={`/user/${user.id}`}
+        style={{ display: 'block', textAlign: 'center', marginTop: '10px', color: '#007bff', textDecoration: 'none' }}
+      >
+        View Details
+      </Link>
     </div>
   );
 }
