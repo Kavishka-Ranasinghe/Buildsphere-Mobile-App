@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import axios from 'axios';
 
 function UserDetail() {
-  const { uid } = useParams(); // Get the user ID from the URL
+  const { uid } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const placeholder = '/profile_avatar.png';
@@ -32,11 +32,20 @@ function UserDetail() {
   const handleDelete = async () => {
     if (window.confirm('Delete this user?')) {
       try {
+        // Try to delete from Firebase Authentication
         await axios.post('http://localhost:5000/deleteUser', { uid });
-        alert('✅ User deleted successfully!');
+      } catch (authError) {
+        console.warn('Authentication deletion failed:', authError.message);
+        // Continue to Firestore deletion even if Authentication fails
+      }
+
+      try {
+        // Delete from Firestore
+        await deleteDoc(doc(db, 'users', uid));
+        alert('✅ User deleted from Firestore successfully!');
         navigate('/dashboard');
-      } catch (err) {
-        alert('❌ Error deleting user: ' + err.message);
+      } catch (firestoreError) {
+        alert('❌ Error deleting user from Firestore: ' + firestoreError.message);
       }
     }
   };
