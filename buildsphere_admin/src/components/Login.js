@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -12,9 +12,16 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError(null); // Clear previous errors
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Wait for auth state to update
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Small delay to ensure state sync
+      if (userCredential.user) {
+        navigate('/dashboard');
+      } else {
+        setError('Login failed, user not authenticated.');
+      }
     } catch (err) {
       setError(err.message);
     }

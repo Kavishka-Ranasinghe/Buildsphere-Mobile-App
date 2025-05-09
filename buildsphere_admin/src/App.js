@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { auth } from './firebase';
+import { signOut } from 'firebase/auth';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import UserDetail from './components/UserDetail';
@@ -10,10 +11,23 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      setUser(user);
+    // Sign out on initial load to force login
+    signOut(auth).then(() => {
+      setUser(null);
+      setLoading(false);
+    }).catch((error) => {
+      console.error('Error signing out:', error);
+      setUser(null);
       setLoading(false);
     });
+
+    // Set up auth state listener
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user); // Debug log
+      setUser(user);
+      if (!loading) setLoading(false); // Ensure loading state is managed
+    });
+
     return () => unsubscribe();
   }, []);
 
@@ -33,9 +47,7 @@ function App() {
         />
         <Route
           path="/"
-          element={
-            user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
-          }
+          element={<Navigate to="/login" replace />}
         />
         <Route
           path="/user/:uid"
