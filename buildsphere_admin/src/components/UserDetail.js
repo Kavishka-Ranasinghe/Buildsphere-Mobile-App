@@ -31,18 +31,24 @@ function UserDetail() {
 
   const handleDelete = async () => {
     if (window.confirm('Delete this user?')) {
+      let authSuccess = false;
+
       try {
-        // Try to delete from Firebase Authentication
+        // Attempt to delete from Firebase Authentication
         await axios.post('http://localhost:5000/deleteUser', { uid });
+        authSuccess = true;
       } catch (authError) {
-        console.warn('Authentication deletion failed:', authError.message);
-        // Continue to Firestore deletion even if Authentication fails
+        console.warn('Authentication deletion failed or user not found:', authError.message);
+        // Continue even if Authentication fails
       }
 
       try {
-        // Delete from Firestore
+        // Delete from Firestore using the same uid
         await deleteDoc(doc(db, 'users', uid));
-        alert('✅ User deleted from Firestore successfully!');
+        const message = authSuccess
+          ? '✅ User deleted from both Authentication and Firestore successfully!'
+          : '✅ User deleted from Firestore successfully! (Authentication already removed or failed)';
+        alert(message);
         navigate('/dashboard');
       } catch (firestoreError) {
         alert('❌ Error deleting user from Firestore: ' + firestoreError.message);
