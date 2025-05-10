@@ -23,8 +23,15 @@ function Dashboard() {
       }
     };
 
+    // Initial fetch
     fetchUsers();
-  }, []);
+
+    // Set interval to refresh every 2 seconds
+    const intervalId = setInterval(fetchUsers, 2000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, []); // Empty dependency array ensures this runs once on mount and cleans up on unmount
 
   const getUserCount = (role) => {
     if (role === 'All Users') return users.length;
