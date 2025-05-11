@@ -99,6 +99,8 @@ flutter:
       - assets/images/modern.png
       - assets/images/MH.jpg
       - assets/images/Video_icon.png
+      - assets/images/Dr.Chaminda-Wijesinghe.webp
+      - assets/images/kavishka.jpg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
