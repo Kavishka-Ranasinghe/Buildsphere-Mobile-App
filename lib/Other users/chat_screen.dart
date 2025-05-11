@@ -40,10 +40,8 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
       final file = File('${dir.path}/$filename');
 
       if (await file.exists()) {
-        // Use cached file
         _controller = vp.VideoPlayerController.file(file);
       } else {
-        // Download and cache
         final response = await http.get(Uri.parse(widget.url));
         await file.writeAsBytes(response.bodyBytes);
         _controller = vp.VideoPlayerController.file(file);
@@ -90,7 +88,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
     final Size videoSize = _controller.value.size;
     final double aspectRatio = _controller.value.aspectRatio;
 
-    // Limit height and width within the screen bounds
     final double maxWidth = MediaQuery.of(context).size.width * 1.5;
     final double maxHeight = MediaQuery.of(context).size.height * 0.8;
 
@@ -217,6 +214,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
   MessagesRequest? _messagesRequest;
   bool _showScrollDownButton = false;
   bool _isLoadingOldMessages = false;
+  User? currentUser;
+  Group? group;
 
   @override
   void initState() {
@@ -247,6 +246,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     });
 
     fetchMessages();
+    fetchCurrentUser();
+    fetchGroupInfo();
     CometChat.addMessageListener("chat_listener", this);
   }
 
@@ -302,6 +303,30 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     });
   }
 
+  Future<void> fetchCurrentUser() async {
+    setState(() {
+      currentUser = CometChat.getLoggedInUser() as User?;
+    });
+  }
+
+  Future<void> fetchGroupInfo() async {
+    try {
+      await CometChat.getGroup(
+        widget.roomId,
+        onSuccess: (Group fetchedGroup) {
+          setState(() {
+            group = fetchedGroup;
+          });
+        },
+        onError: (CometChatException e) {
+          debugPrint("❌ Error fetching group: ${e.message}");
+        },
+      );
+    } catch (e) {
+      debugPrint("❌ Exception: $e");
+    }
+  }
+
   @override
   void onTextMessageReceived(TextMessage textMessage) {
     if (textMessage.receiverUid == widget.roomId) {
@@ -331,6 +356,18 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       if (isNearBottom) {
         _scrollToBottom();
       }
+    }
+  }
+
+  @override
+  void onMessageDeleted(BaseMessage message) {
+    if (message.receiverUid == widget.roomId) {
+      setState(() {
+        final index = messages.indexWhere((msg) => msg.id == message.id);
+        if (index != -1) {
+          messages[index] = message; // Update with deleted status
+        }
+      });
     }
   }
 
@@ -504,14 +541,15 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                       return FutureBuilder<User?>(
                         future: CometChat.getLoggedInUser(),
                         builder: (context, snapshot) {
-                          if (!snapshot.hasData) return const SizedBox();
+                          if (!snapshot.hasData || group == null) return const SizedBox();
 
                           bool isSentByMe = message.sender?.uid == snapshot.data?.uid;
+                          bool isAdmin = snapshot.data?.uid == group?.owner;
 
                           if (message is TextMessage) {
-                            return _buildTextMessage(message, isSentByMe);
+                            return _buildTextMessage(message, isSentByMe, isAdmin);
                           } else if (message is MediaMessage) {
-                            return _buildMediaMessage(message, isSentByMe);
+                            return _buildMediaMessage(message, isSentByMe, isAdmin);
                           } else if (message is cometchat.Action) {
                             return _buildGroupAction(message);
                           }
@@ -562,56 +600,68 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     );
   }
 
-  Widget _buildTextMessage(TextMessage message, bool isSentByMe) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Row(
-        mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+  Widget _buildTextMessage(TextMessage message, bool isSentByMe, bool isAdmin) {
+    bool isDeleted = message.deletedAt != null;
+
+    return GestureDetector(
+      onLongPress: (isSentByMe || isAdmin) ? () => _showDeleteConfirmation(context, message.id) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isSentByMe ? Colors.blueAccent : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SelectableText(
-                        message.text,
-                        style: TextStyle(color: isSentByMe ? Colors.white : Colors.black),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        formatTimeOnly(message.sentAt),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isSentByMe ? Colors.white70 : Colors.black54,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isSentByMe ? Colors.blueAccent : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isDeleted)
+                          const Text(
+                            "message was deleted",
+                            style: TextStyle(color: Colors.black, fontStyle: FontStyle.normal),
+                          )
+                        else
+                          SelectableText(
+                            message.text,
+                            style: TextStyle(color: isSentByMe ? Colors.white : Colors.black),
+                          ),
+                        const SizedBox(height: 5),
+                        Text(
+                          formatTimeOnly(message.sentAt),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isSentByMe ? Colors.white70 : Colors.black54,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildMediaMessage(MediaMessage message, bool isSentByMe) {
+  Widget _buildMediaMessage(MediaMessage message, bool isSentByMe, bool isAdmin) {
+    bool isDeleted = message.deletedAt != null;
     final fileUrl = message.attachment?.fileUrl;
     final fileName = message.attachment?.fileName?.toLowerCase() ?? "";
     final isVideo = fileName.endsWith(".mp4");
@@ -627,118 +677,126 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       caption = message.metadata!["caption"];
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      child: Row(
-        mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    if (isImage && fileUrl != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FullScreenImageView(imageUrl: fileUrl),
-                        ),
-                      );
-                    } else if (fileUrl != null && fileName.endsWith(".pdf")) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
-                        ),
-                      );
-                    } else if (fileUrl != null && isVideo) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VideoPlayerView(url: fileUrl),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Preview not available for this file")),
-                      );
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isSentByMe ? Colors.blueAccent : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onLongPress: (isSentByMe || isAdmin) ? () => _showDeleteConfirmation(context, message.id) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisAlignment: isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            Flexible(
+              child: Column(
+                crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      isSentByMe ? "you" : (message.sender?.name ?? "Unknown"),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    child: isImage && fileUrl != null
-                        ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: fileUrl,
-                        width: 280,
-                        height: 280,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const CircularProgressIndicator(),
-                        errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      if (isImage && fileUrl != null && !isDeleted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImageView(imageUrl: fileUrl),
+                          ),
+                        );
+                      } else if (fileUrl != null && fileName.endsWith(".pdf") && !isDeleted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PdfViewerPage(url: fileUrl, fileName: fileName),
+                          ),
+                        );
+                      } else if (fileUrl != null && isVideo && !isDeleted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VideoPlayerView(url: fileUrl),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Preview not available for this file")),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isSentByMe ? Colors.blueAccent : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    )
-                        : isVideo
-                        ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Image.asset(
-                          'assets/images/Video_icon.png',
-                          width: 50,
-                          height: 50,
+                      child: isDeleted
+                          ? const Text(
+                        "message was deleted",
+                        style: TextStyle(color: Colors.red, fontStyle: FontStyle.italic),
+                      )
+                          : isImage && fileUrl != null
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: CachedNetworkImage(
+                          imageUrl: fileUrl,
+                          width: 280,
+                          height: 280,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const CircularProgressIndicator(),
+                          errorWidget: (context, url, error) => const Icon(Icons.broken_image),
                         ),
-                        if (caption != null && caption.isNotEmpty) ...[
-                          const SizedBox(height: 11),
-                          SelectableText(
-                            caption,
+                      )
+                          : isVideo
+                          ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Image.asset(
+                            'assets/images/Video_icon.png',
+                            width: 50,
+                            height: 50,
+                          ),
+                          if (caption != null && caption.isNotEmpty) ...[
+                            const SizedBox(height: 11),
+                            SelectableText(
+                              caption,
+                              style: TextStyle(
+                                color: isSentByMe ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                          : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.insert_drive_file,
+                            color: isSentByMe ? Colors.white : Colors.black,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            fileName,
                             style: TextStyle(
                               color: isSentByMe ? Colors.white : Colors.black,
                             ),
                           ),
                         ],
-                      ],
-                    )
-                        : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.insert_drive_file,
-                          color: isSentByMe ? Colors.white : Colors.black,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          fileName,
-                          style: TextStyle(
-                            color: isSentByMe ? Colors.white : Colors.black,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  formatTimeOnly(message.sentAt),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isSentByMe ? Colors.white70 : Colors.black54,
+                  Text(
+                    formatTimeOnly(message.sentAt),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isSentByMe ? Colors.white70 : Colors.black54,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -754,5 +812,59 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       );
     }
     return const SizedBox();
+  }
+
+  void _showDeleteConfirmation(BuildContext context, int messageId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Message"),
+          content: const Text("Are you sure you want to delete this message?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await deleteMessage(messageId);
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> deleteMessage(int messageId) async {
+    try {
+      await CometChat.deleteMessage(
+        messageId,
+        onSuccess: (BaseMessage message) {
+          setState(() {
+            final index = messages.indexWhere((msg) => msg.id == messageId);
+            if (index != -1) {
+              messages[index] = message; // Update with deleted status
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Message deleted successfully")),
+          );
+        },
+        onError: (CometChatException e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to delete: ${e.message}")),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 }
