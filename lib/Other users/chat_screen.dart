@@ -119,7 +119,10 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.transparent),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white), // 👈 makes back icon white
+      ),
       body: _isLoading || !_controller.value.isInitialized
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(

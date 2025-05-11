@@ -154,7 +154,7 @@ class _room_sectionState extends State<room_section> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 40, color: color),
-              const SizedBox(height: 5),
+              const SizedBox(height: 10),
               Text(
                 label,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
