@@ -72,6 +72,10 @@ https://www.nsbm.ac.lk/staff/dr-chaminda-wijesinghe/
 
 ## Web Admin (web app)
 
+![Admin login](https://github.com/user-attachments/assets/15373580-a9d9-44a3-812c-8f010d9a2305)
+![admin - user profile view](https://github.com/user-attachments/assets/6636218c-eff4-42e2-a1b4-ba42cd8c4cae)
+![admin dash](https://github.com/user-attachments/assets/3f39a4e4-69fc-4d07-bc5c-08c3e25d563c)
+
 
 
 
