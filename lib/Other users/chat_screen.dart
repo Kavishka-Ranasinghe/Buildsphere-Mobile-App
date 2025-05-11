@@ -1,4 +1,3 @@
-// going to update for better_player
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -41,10 +40,10 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
       final file = File('${dir.path}/$filename');
 
       if (await file.exists()) {
-        // ✅ Use cached file
+        // Use cached file
         _controller = vp.VideoPlayerController.file(file);
       } else {
-        // ⬇️ Download and cache
+        // Download and cache
         final response = await http.get(Uri.parse(widget.url));
         await file.writeAsBytes(response.bodyBytes);
         _controller = vp.VideoPlayerController.file(file);
@@ -121,14 +120,13 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white), // 👈 makes back icon white
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading || !_controller.value.isInitialized
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
         child: Column(
           children: [
-            // ✅ Make the video player flexible
             Expanded(
               child: Center(
                 child: _buildVideoPlayer(),
@@ -136,7 +134,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 15, // 👈 Increase this value for a thicker progress bar
+              height: 15,
               child: vp.VideoProgressIndicator(
                 _controller,
                 allowScrubbing: true,
@@ -148,7 +146,6 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
                 padding: const EdgeInsets.symmetric(horizontal: 10),
               ),
             ),
-
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -233,7 +230,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
 
-      // Load older messages when near the top of reversed list
       if (_scrollController.offset >= _scrollController.position.maxScrollExtent - 100 &&
           !_isLoadingOldMessages) {
         loadOlderMessages();
@@ -241,7 +237,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
 
       const scrollThreshold = 200.0;
 
-      // ✅ Detect if user is away from bottom
       final isAtBottom = _scrollController.offset <= scrollThreshold;
 
       if (!isAtBottom && !_showScrollDownButton) {
@@ -373,19 +368,16 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       String fileName = result.files.single.name.toLowerCase();
       String? caption;
 
-      // Prompt for caption if it's a video
       if (fileName.endsWith(".mp4")) {
         caption = await _showCaptionDialog();
       }
 
-      // ✅ Show uploading snackbar
       final snackBar = SnackBar(
         content: const Text("📤 Uploading media..."),
-        duration: const Duration(days: 1), // Keep it visible until manually closed
+        duration: const Duration(days: 1),
       );
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
 
-      // Add caption to metadata if provided
       Map<String, dynamic> metadata = {};
       if (caption != null && caption.isNotEmpty) {
         metadata["caption"] = caption;
@@ -402,14 +394,11 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       CometChat.sendMediaMessage(
         mediaMessage,
         onSuccess: (BaseMessage sentMessage) {
-          // ✅ Hide the uploading snackbar
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-          // ✅ Optionally show short success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text("✅ Media uploaded"),
-              duration: Duration(seconds: 2), // Auto-close after 2 seconds
+              duration: Duration(seconds: 2),
             ),
           );
 
@@ -419,7 +408,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           _scrollToBottom();
         },
         onError: (CometChatException e) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar(); // ✅ Hide snack
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("❌ Upload failed: ${e.message}")),
           );
@@ -442,7 +431,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, null), // Skip caption
+              onPressed: () => Navigator.pop(context, null),
               child: const Text("Skip"),
             ),
             TextButton(
@@ -482,7 +471,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
               group: Group(
                 guid: widget.roomId,
                 name: widget.roomName,
-                type: GroupTypeConstants.public, // or private
+                type: GroupTypeConstants.public,
               ),
               callButtonsStyle: CometChatCallButtonsStyle(
                 voiceCallIconColor: Colors.green,
@@ -506,7 +495,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 60),
                   child: ListView.builder(
-                    reverse: true, // 👈 Important to show newest at bottom
+                    reverse: true,
                     controller: _scrollController,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
@@ -583,7 +572,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
             child: Column(
               crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                // ✅ Show "you" if it's your message
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
@@ -600,7 +588,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      SelectableText(
                         message.text,
                         style: TextStyle(color: isSentByMe ? Colors.white : Colors.black),
                       ),
@@ -634,7 +622,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         fileName.endsWith(".png") ||
         fileName.endsWith(".gif");
 
-    // Retrieve caption from metadata
     String? caption;
     if (message.metadata != null && message.metadata!.containsKey("caption")) {
       caption = message.metadata!["caption"];
@@ -649,7 +636,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
             child: Column(
               crossAxisAlignment: isSentByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                // ✅ Sender name or "you"
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
@@ -715,7 +701,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                         ),
                         if (caption != null && caption.isNotEmpty) ...[
                           const SizedBox(height: 11),
-                          Text(
+                          SelectableText(
                             caption,
                             style: TextStyle(
                               color: isSentByMe ? Colors.white : Colors.black,

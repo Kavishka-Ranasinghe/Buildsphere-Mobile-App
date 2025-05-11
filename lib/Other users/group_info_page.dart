@@ -1,10 +1,8 @@
-// (keep existing imports)
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-
 
 class GroupInfoPage extends StatefulWidget {
   final String groupId;
@@ -22,7 +20,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
   bool _isLoading = true;
   Timer? _refreshTimer;
 
-
   @override
   void initState() {
     super.initState();
@@ -35,15 +32,13 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       fetchGroupInfo();
       fetchGroupMembers();
     });
-
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel(); // ✅ Stop timer
+    _refreshTimer?.cancel(); // Stop timer
     super.dispose();
   }
-
 
   Future<void> fetchGroupInfo() async {
     try {
@@ -93,7 +88,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       debugPrint("❌ Exception while fetching group members: $e");
     }
   }
-
 
   Future<void> fetchCurrentUser() async {
     currentUser = await CometChat.getLoggedInUser();
@@ -150,7 +144,6 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -236,11 +229,121 @@ class _GroupInfoPageState extends State<GroupInfoPage> {
                 );
               },
             ),
-
-
+            const SizedBox(height: 20),
+            if (currentUser?.uid == group?.owner)
+              ElevatedButton(
+                onPressed: () => _showDeleteConfirmation(context),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text("Delete Group", style: TextStyle(color: Colors.white)),
+              ),
+            if (currentUser?.uid != group?.owner)
+              ElevatedButton(
+                onPressed: () => _showLeaveConfirmation(context),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+                child: const Text("Leave Group", style: TextStyle(color: Colors.white)),
+              ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Delete Group"),
+          content: const Text("Are you sure you want to delete this group? This action cannot be undone."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await deleteGroup();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showLeaveConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Leave Group"),
+          content: const Text("Are you sure you want to leave this group?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await leaveGroup();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Leave"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> deleteGroup() async {
+    try {
+      await CometChat.deleteGroup(
+        widget.groupId,
+        onSuccess: (message) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Group deleted successfully")),
+          );
+          Navigator.pop(context); // Return to previous screen
+        },
+        onError: (CometChatException e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to delete group: ${e.message}")),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+
+  Future<void> leaveGroup() async {
+    try {
+      await CometChat.leaveGroup(
+        widget.groupId,
+        onSuccess: (message) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("You have left the group")),
+          );
+          Navigator.pop(context); // Return to previous screen
+        },
+        onError: (CometChatException e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to leave group: ${e.message}")),
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 }
