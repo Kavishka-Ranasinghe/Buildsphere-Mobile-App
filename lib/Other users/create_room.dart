@@ -13,12 +13,14 @@ class CreateRoom extends StatefulWidget {
 class _CreateRoomState extends State<CreateRoom> {
   final TextEditingController _roomNameController = TextEditingController();
   final TextEditingController _confirmNameController = TextEditingController();
+  final TextEditingController _roomIdController = TextEditingController();
   late String _generatedRoomId;
 
   @override
   void initState() {
     super.initState();
-    _generatedRoomId = "room_${generateRandomID(10)}";
+    _generatedRoomId = "R_${generateRandomID(4)}";
+    _roomIdController.text = _generatedRoomId;
   }
 
   String generateRandomID(int length) {
@@ -29,8 +31,9 @@ class _CreateRoomState extends State<CreateRoom> {
   Future<void> createChatRoom() async {
     String groupName = _roomNameController.text.trim();
     String confirmName = _confirmNameController.text.trim();
+    String roomId = _roomIdController.text.trim();
 
-    if (groupName.isEmpty || confirmName.isEmpty) {
+    if (groupName.isEmpty || confirmName.isEmpty || roomId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill out all fields")),
       );
@@ -48,10 +51,10 @@ class _CreateRoomState extends State<CreateRoom> {
     String ownerUid = loggedInUser?.uid ?? "";
 
     Group group = Group(
-      guid: _generatedRoomId,
+      guid: roomId,
       name: groupName,
       type: CometChatGroupType.password,
-      password: groupName, // ✅ group name is used as password
+      password: groupName, // group name is used as password
       owner: ownerUid,
     );
 
@@ -73,6 +76,13 @@ class _CreateRoomState extends State<CreateRoom> {
     );
   }
 
+  void _regenerateRoomId() {
+    setState(() {
+      _generatedRoomId = "R_${generateRandomID(4)}";
+      _roomIdController.text = _generatedRoomId;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,13 +91,12 @@ class _CreateRoomState extends State<CreateRoom> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 🔐 Room ID
+            // Room ID
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    readOnly: true,
-                    controller: TextEditingController(text: _generatedRoomId),
+                    controller: _roomIdController,
                     decoration: const InputDecoration(
                       labelText: "Room ID (share this)",
                       border: OutlineInputBorder(),
@@ -96,9 +105,14 @@ class _CreateRoomState extends State<CreateRoom> {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _regenerateRoomId,
+                  tooltip: "Generate New Room ID",
+                ),
+                IconButton(
                   icon: const Icon(Icons.copy),
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: _generatedRoomId));
+                    Clipboard.setData(ClipboardData(text: _roomIdController.text));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Room ID copied!")),
                     );
@@ -106,10 +120,8 @@ class _CreateRoomState extends State<CreateRoom> {
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
-            // 📝 Group Name
+            // Group Name
             TextField(
               controller: _roomNameController,
               decoration: const InputDecoration(
@@ -117,10 +129,8 @@ class _CreateRoomState extends State<CreateRoom> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // ✅ Confirm Group Name
+            // Confirm Group Name
             TextField(
               controller: _confirmNameController,
               decoration: const InputDecoration(
@@ -128,9 +138,7 @@ class _CreateRoomState extends State<CreateRoom> {
                 border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 20),
-
             ElevatedButton(
               onPressed: createChatRoom,
               child: const Text("Create Room"),
