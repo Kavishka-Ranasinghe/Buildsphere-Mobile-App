@@ -42,60 +42,123 @@ function Dashboard() {
     ? users
     : users.filter(user => user.role === selectedRole);
 
+  // Define reusable styles
+  const containerStyle = {
+    minHeight: '100vh',
+    backgroundImage: 'url(/Dashboard.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    position: 'relative',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '40px 20px',
+  };
+
+  const blurOverlayStyle = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundImage: 'url(/Dashboard.jpg)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    filter: 'blur(10px)',
+    zIndex: 1,
+  };
+
+  const contentStyle = {
+    position: 'relative',
+    zIndex: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Glassmorphism effect
+    backdropFilter: 'blur(15px)', // Additional glass effect
+    borderRadius: '20px',
+    padding: '30px',
+    maxWidth: '1200px',
+    width: '100%',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+  };
+
+  const titleStyle = {
+    fontFamily: "'Inter', sans-serif",
+    fontSize: '2.5rem',
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: '30px',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+  };
+
+  const navStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '15px',
+    marginBottom: '30px',
+    flexWrap: 'wrap',
+  };
+
+  const buttonStyle = (isSelected) => ({
+    padding: '12px 24px',
+    background: isSelected
+      ? 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)'
+      : 'rgba(255, 255, 255, 0.2)',
+    color: isSelected ? '#ffffff' : '#333333',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontFamily: "'Inter', sans-serif",
+    fontSize: '1rem',
+    fontWeight: '600',
+    transition: 'all 0.3s ease',
+    boxShadow: isSelected ? '0 4px 15px rgba(0, 123, 255, 0.3)' : 'none',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
+      background: isSelected
+        ? 'linear-gradient(135deg, #0056b3 0%, #003d82 100%)'
+        : 'rgba(255, 255, 255, 0.3)',
+    },
+  });
+
+  const userListStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+    gap: '20px',
+  };
+
+  const noUsersStyle = {
+    fontFamily: "'Inter', sans-serif",
+    fontSize: '1.2rem',
+    color: '#666666',
+    textAlign: 'center',
+    padding: '20px',
+  };
+
   return (
-    <div
-      style={{
-        padding: '20px',
-        minHeight: '100vh', // Ensure the background covers the full viewport height
-        backgroundImage: 'url(/dashboard.png)', // Reference the image from the public folder
-        backgroundSize: 'cover', // Cover the entire area
-        backgroundPosition: 'center', // Center the image
-        backgroundRepeat: 'no-repeat', // Prevent tiling
-        position: 'relative', // For layering the content above the background
-      }}
-    >
+    <div style={containerStyle}>
       {/* Overlay for the blurred background */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: 'url(/Dashboard.jpg)', // Same image for the blur layer
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          filter: 'blur(8px)', // Apply blur effect
-          zIndex: 1, // Behind the content
-        }}
-      />
+      <div style={blurOverlayStyle} />
+
       {/* Content layer */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 2, // Above the blurred background
-          backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent white background for readability
-          borderRadius: '10px',
-          padding: '20px',
-        }}
-      >
-        <h1>👋 Admin Dashboard</h1>
+      <div style={contentStyle}>
+        <h1 style={titleStyle}>
+          <span role="img" aria-label="wave">👋</span> Admin Dashboard
+        </h1>
 
         {/* TOP NAVIGATION */}
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+        <div style={navStyle}>
           {roles.map(role => (
             <button
               key={role}
               onClick={() => setSelectedRole(role)}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: selectedRole === role ? '#007bff' : '#f0f0f0',
-                color: selectedRole === role ? 'white' : 'black',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
+              style={buttonStyle(selectedRole === role)}
             >
               {role} ({getUserCount(role)})
             </button>
@@ -103,16 +166,45 @@ function Dashboard() {
         </div>
 
         {/* USER LIST */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+        <div style={userListStyle}>
           {filteredUsers.length > 0 ? (
             filteredUsers.map(user => (
-              <UserTile key={user.id} user={user} />
+              <div
+                key={user.id}
+                style={{
+                  opacity: 0,
+                  animation: 'fadeIn 0.5s ease forwards',
+                }}
+              >
+                <UserTile user={user} />
+              </div>
             ))
           ) : (
-            <p>No users found.</p>
+            <p style={noUsersStyle}>No users found.</p>
           )}
         </div>
       </div>
+
+      {/* CSS Animation for User Tiles */}
+      <style>
+        {`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+          }
+        `}
+      </style>
     </div>
   );
 }
