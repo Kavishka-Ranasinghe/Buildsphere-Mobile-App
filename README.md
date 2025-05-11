@@ -1,5 +1,4 @@
-# 🏗️ BuildSphere Mobile Application - A Smart Communication and Material Sourcing App for the Construction 
-Industry
+# 🏗️ BuildSphere Mobile Application - A Smart Communication and Material Sourcing App for the Construction Industry
 **Developer**
 - **Kavishka Ramasinghe** 
 - **Plymouth Name** - Pulihinga M Ranasinghe
