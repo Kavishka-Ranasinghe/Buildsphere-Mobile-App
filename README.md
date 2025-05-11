@@ -64,7 +64,7 @@ https://www.nsbm.ac.lk/staff/dr-chaminda-wijesinghe/
 
 ---
 ## Screen shots
-- **Mobile application**
+## Mobile application
 - ![login](https://github.com/user-attachments/assets/1bb1efca-42f4-43d0-a017-7954ec39158c)
 
 
