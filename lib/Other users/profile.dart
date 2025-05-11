@@ -11,12 +11,6 @@ import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:cometchat_sdk/cometchat_sdk.dart' as comet_chat;
-import 'package:http/http.dart' as http;
-
-
-
-
-
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -33,7 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _userId = "";
   String _userRole = ""; // Store user role
   String? _localImagePath;
-  String? _downloadURL; // 🔹 Ensure this is declared in the class
+  String? _downloadURL; // Ensure this is declared in the class
   String? _selectedDistrict;
   String? _selectedCity;
 
@@ -42,7 +36,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadUserData();
   }
-// Function to delete user account
+
+  // Function to delete user account
   Future<void> _deleteAccount(BuildContext context) async {
     showDialog(
       context: context,
@@ -75,15 +70,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
       _userId = user.uid;
 
-      // 🔒 Step 1: Re-authenticate
+      // Step 1: Re-authenticate
       final password = await _promptForPassword();
       final cred = EmailAuthProvider.credential(email: user.email!, password: password);
       await user.reauthenticateWithCredential(cred);
 
-      // 🗑️ Step 2: Delete Firestore document
+      // Step 2: Delete Firestore document
       await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
 
-      // 🧹 Step 3: Delete profile picture (if any)
+      // Step 3: Delete profile picture (if any)
       if (_downloadURL != null) {
         try {
           await FirebaseStorage.instance.ref('profile_images/$_userId/profile.jpg').delete();
@@ -115,16 +110,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
-
       await deleteCometChatUser(_userId);
 
-      // 🔥 Step 4: Delete from Firebase Auth
+      // Step 4: Delete from Firebase Auth
       await user.delete();
 
-
-
-
-      // 🎉 Step 5: Show farewell popup
+      // Step 5: Show farewell popup
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -156,6 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
   Future<String> _promptForPassword() async {
     String password = '';
     await showDialog(
@@ -202,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String userId = user.uid;
       String filePath = 'profile_images/$userId/profile.jpg';
 
-      // ✅ Remove image reference from Firestore & Storage together
+      // Remove image reference from Firestore & Storage together
       await Future.wait([
         FirebaseStorage.instance.ref(filePath).delete(),
         FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -224,9 +216,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-
-
-
 
   // Function to load user data from Firestore
   Future<void> _loadUserData() async {
@@ -250,21 +239,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _selectedCity = userDoc['city'];
           _downloadURL = userDoc['profileImage'];
 
-          // ✅ Save Image Locally
+          // Save Image Locally
           _cacheProfileImage(_downloadURL!);
         });
       }
     }
   }
 
-
-  // ✅ Save Image Locally
+  // Save Image Locally
   Future<void> _cacheProfileImage(String imageUrl) async {
     final directory = await getApplicationDocumentsDirectory();
     final localPath = '${directory.path}/profile_$_userId.jpg';
 
     try {
-      final response = await http.get(Uri.parse(imageUrl));  // ✅ Use `http.get()`
+      final response = await http.get(Uri.parse(imageUrl)); // Use `http.get()`
       if (response.statusCode == 200) {
         File file = File(localPath);
         await file.writeAsBytes(response.bodyBytes);
@@ -277,15 +265,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
-
-
-
-
-
-
-
-  // Function to pick an image and save it locally
   // Function to pick an image and update UI immediately
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -293,16 +272,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile != null) {
       File newImage = File(pickedFile.path);
 
-      // ✅ Update UI immediately with selected image
+      // Update UI immediately with selected image
       setState(() {
         _profileImage = newImage;
       });
 
-      // ✅ Upload image to Firebase Storage
+      // Upload image to Firebase Storage
       await _uploadProfileImage(newImage);
     }
   }
-
 
   // Upload profile image to Firebase Storage
   Future<void> _uploadProfileImage(File imageFile) async {
@@ -319,7 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String fileName = "profile.jpg"; // Keeping it constant to replace old image
       String filePath = 'profile_images/$userId/$fileName';
 
-      // ✅ Resize Image Before Uploading (Reduce File Size)
+      // Resize Image Before Uploading (Reduce File Size)
       List<int> imageBytes = await imageFile.readAsBytes();
       img.Image? decodedImage = img.decodeImage(Uint8List.fromList(imageBytes));
 
@@ -328,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         imageBytes = img.encodeJpg(resizedImage, quality: 80); // Compressing
       }
 
-      // ✅ Use putData() instead of putFile()
+      // Use putData() instead of putFile()
       Reference ref = FirebaseStorage.instance.ref(filePath);
       UploadTask uploadTask = ref.putData(Uint8List.fromList(imageBytes)); // Faster Upload
 
@@ -355,6 +333,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
   void _showFullScreenImage(BuildContext context) {
     showDialog(
       context: context,
@@ -362,9 +341,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Dialog(
           backgroundColor: Colors.black,
           child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(), // ✅ Tap to close
+            onTap: () => Navigator.of(context).pop(), // Tap to close
             child: InteractiveViewer(
-              panEnabled: true, // ✅ Allow zooming
+              panEnabled: true, // Allow zooming
               child: _profileImage != null
                   ? Image.file(_profileImage!)
                   : _downloadURL != null
@@ -376,9 +355,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-
-
-
 
   // Function to save updated user data
   Future<void> _saveChanges() async {
@@ -402,7 +378,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Function to log out and redirect to login page
   void _logout(BuildContext context) async {
-    // ✅ CometChat Logout
+    // CometChat Logout
     await comet_chat.CometChat.logout(
       onSuccess: (_) {
         debugPrint("✅ CometChat logout successful");
@@ -412,17 +388,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
 
-    // ✅ Firebase Logout
+    // Firebase Logout
     await FirebaseAuth.instance.signOut();
 
-    // ✅ Navigate to Login Screen
+    // Navigate to Login Screen
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
           (route) => false,
     );
   }
-
 
   final List<String> districts = [
     'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
@@ -489,7 +464,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.8), // Slightly transparent white background
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.green, width: 5), // ✅ Added green border
+                    border: Border.all(color: Colors.green, width: 5), // Added green border
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
@@ -506,15 +481,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         'Update Profile',
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 20),
-
-
+                      const SizedBox(height: 10),
                       Center(
                         child: Column(
                           children: [
                             GestureDetector(
-                              onTap: _pickImage, // ✅ Short tap to pick image
-                              onLongPress: () {  // ✅ Long press to view image full-screen
+                              onTap: _pickImage, // Short tap to pick image
+                              onLongPress: () { // Long press to view image full-screen
                                 if (_profileImage != null || _downloadURL != null) {
                                   _showFullScreenImage(context);
                                 }
@@ -522,15 +495,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: CircleAvatar(
                                 radius: 50,
                                 backgroundImage: _profileImage != null
-                                    ? FileImage(_profileImage!) // ✅ Show selected image
+                                    ? FileImage(_profileImage!) // Show selected image
                                     : _downloadURL != null
                                     ? CachedNetworkImageProvider(_downloadURL!)
                                     : const AssetImage('assets/images/profile.gif') as ImageProvider,
                               ),
                             ),
-                            const SizedBox(height: 10),
-
-                            if (_downloadURL != null || _profileImage != null) // ✅ Only show if an image exists
+                            const SizedBox(height: 5),
+                            if (_downloadURL != null || _profileImage != null) // Only show if an image exists
                               TextButton(
                                 onPressed: _deleteProfileImage,
                                 style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -539,10 +511,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                       ),
-
-
-
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 5),
                       if (_downloadURL == null && _localImagePath == null)
                         const Center(
                           child: Text(
@@ -551,14 +520,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       const SizedBox(height: 20),
-
                       // Display Role as Read-Only Text
                       Text(
                         'Selected Role: $_userRole',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 10),
-
+                      const SizedBox(height: 5),
                       // Name Input
                       TextField(
                         controller: _nameController,
@@ -567,21 +534,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           border: OutlineInputBorder(),
                         ),
                       ),
-                      const SizedBox(height: 10),
-
+                      const SizedBox(height: 5),
                       // Email Input
                       TextField(
                         controller: _emailController,
-                        readOnly: true, // ✅ Make it read-only
-                        enabled: false, // ❌ Prevent editing
+                        readOnly: true, // Make it read-only
+                        enabled: false, // Prevent editing
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
                         ),
                       ),
-                      const SizedBox(height: 20),
-
-                      // ✅ District Dropdown
+                      const SizedBox(height: 5),
+                      // District Dropdown
                       _buildDropdown(
                         hint: "Select District",
                         value: _selectedDistrict,
@@ -593,9 +558,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           });
                         },
                       ),
-                      const SizedBox(height: 10),
-
-                      // ✅ City Dropdown (only if district is selected)
+                      const SizedBox(height: 5),
+                      // City Dropdown (only if district is selected)
                       if (_selectedDistrict != null)
                         _buildDropdown(
                           hint: "Select City",
@@ -607,23 +571,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             });
                           },
                         ),
-                      const SizedBox(height: 20),
-
-                      ElevatedButton(
-                        onPressed: _saveChanges,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                        child: const Text('Save Changes'),
+                      const SizedBox(height: 25),
+                      // Row to place Save Changes and Delete Account buttons on the same line
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _saveChanges,
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                              child: const Text('Save Changes'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _deleteAccount(context),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
+                              icon: const Icon(Icons.delete_forever, color: Colors.white),
+                              label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
+                            ),
+                          ),
+                        ],
                       ),
-
-                      const SizedBox(height: 20),
-
-                      ElevatedButton.icon(
-                        onPressed: () => _deleteAccount(context),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-                        icon: const Icon(Icons.delete_forever, color: Colors.white),
-                        label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
-                      ),
-
                       const SizedBox(height: 20),
                       ElevatedButton.icon(
                         onPressed: () => _logout(context),
@@ -631,6 +601,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: const Icon(Icons.logout, color: Colors.white),
                         label: const Text('Logout', style: TextStyle(color: Colors.white)),
                       ),
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -639,7 +610,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-
     );
   }
 }
@@ -662,4 +632,3 @@ Widget _buildDropdown({
     ),
   );
 }
-
