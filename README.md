@@ -1,16 +1,69 @@
-# buildup_ceylon
+# 🏗️ BuildSphere – Construction Communication & Procurement App
 
-A new Flutter project.
+**Developer**
+- **Kavishka Ramasinghe** 
+        - Plymouth Name - Pulihinga M Ranasinghe
+        - Student ID - 10898626
 
-## Getting Started
+**BuildSphere** is a mobile-first application developed to streamline communication and procurement in the Sri Lankan construction industry. It connects clients, engineers, planners, and hardware shop owners on a single real-time platform, while providing administrators with account management capabilities through a dedicated web dashboard.
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## 🚀 Technologies Used
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Flutter** – Frontend development for Android
+- **Firebase** – Authentication, Firestore database, and storage
+- **CometChat SDK** – Real-time messaging (private & group chat)
+- **Web(react,node.js.JS)** – Admin dashboard
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## 📱 Mobile App Features
+
+- 🔒 **User Authentication**  
+  Secure login and registration using Firebase (Email & Google Sign-In)
+
+- 🧑‍💼 **Role-Based Access Control**  
+  Distinct user roles:  
+  - Client  
+  - Engineer / Planner  
+  - Hardware Shop Owner
+
+- 💬 **Real-Time Messaging**  
+  - Group chats using CometChat  
+  - Share images, files, and updates  
+
+
+- 🛒 **Procurement Marketplace**  
+  - Hardware shop owners can list raw materials  
+  - Clients can browse, compare, and contact suppliers directly  
+  - Integration with Daraz  for wider item discovery
+
+- 📤 **File Uploads & Sharing**  
+  Upload and share construction-related files within chats
+
+- 📲 **Mobile-First UI**  
+  Built using Flutter for smooth, responsive user experience
+
+---
+
+## 🖥️ Web Admin Dashboard Features
+
+- 🔐 **Admin Login**  
+  Secure access to manage the platform
+
+- 👥 **User Management**  
+  View and delete user accounts (Client, Planner, Engineer, Seller)
+
+- ⚙️ **Platform Moderation**  
+  Improve governance and security through administrative control
+
+---
+
+## 📄 License
+
+This project is developed for educational purposes. Licensing to be added.
+
+---
+
+> Created with 💡 for the NSBM / University of Plymouth final-year project
