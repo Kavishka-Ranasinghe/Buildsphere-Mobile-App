@@ -34,12 +34,7 @@ class AboutPage extends StatelessWidget {
         ),
         elevation: 4,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pop(context),
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.home, color: Colors.white),
-        tooltip: 'Back to Home',
-      ),
+      
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
