@@ -1,16 +1,88 @@
-# buildup_ceylon
+# 🏗️ BuildSphere Mobile Application - A Smart Communication and Material Sourcing App for the Construction Industry
+**Developer**
+- **Kavishka Ranasinghe** 
+- **Plymouth Name** - Pulihinga M Ranasinghe
+- **Student ID** - 10898626
 
-A new Flutter project.
+**Supervisor**
+- **Prof. Chaminda Wijesinghe -**
+https://www.nsbm.ac.lk/staff/dr-chaminda-wijesinghe/
 
-## Getting Started
+**BuildSphere** is a mobile-first application developed to streamline communication and procurement in the Sri Lankan construction industry. It connects clients, engineers, planners, and hardware shop owners on a single real-time platform, while providing administrators with account management capabilities through a dedicated web dashboard.
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## 🚀 Technologies Used
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- **Flutter** – Frontend development for Android
+- **Firebase** – Authentication, Firestore database, and storage
+- **CometChat SDK** – Real-time messaging (private & group chat)
+- **Web(react,node.js.JS)** – Admin dashboard
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## 📱 Mobile App Features
+
+- 🔒 **User Authentication**  
+  Secure login and registration using Firebase (Email & Google Sign-In)
+
+- 🧑‍💼 **Role-Based Access Control**  
+  Distinct user roles:  
+  - Client  
+  - Engineer / Planner  
+  - Hardware Shop Owner
+
+- 💬 **Real-Time Messaging**  
+  - Group chats using CometChat  
+  - Share images, files, and updates  
+
+
+- 🛒 **Procurement Marketplace**  
+  - Hardware shop owners can list raw materials  
+  - Clients can browse, compare, and contact suppliers directly  
+  - Integration with Daraz  for wider item discovery
+
+- 📤 **File Uploads & Sharing**  
+  Upload and share construction-related files within chats
+
+- 📲 **Mobile-First UI**  
+  Built using Flutter for smooth, responsive user experience
+
+---
+
+## 🖥️ Web Admin Dashboard Features
+
+- 🔐 **Admin Login**  
+  Secure access to manage the platform
+
+- 👥 **User Management**  
+  View and delete user accounts (Client, Planner, Engineer, Seller)
+
+- ⚙️ **Platform Moderation**  
+  Improve governance and security through administrative control
+
+---
+## Screen shots
+## Mobile application
+ ![login](https://github.com/user-attachments/assets/1bb1efca-42f4-43d0-a017-7954ec39158c)  ![app other profile](https://github.com/user-attachments/assets/9031b729-261d-46f4-bd5d-8e0188ade49f) ,![other room section](https://github.com/user-attachments/assets/c6a90415-80a6-4ced-84d7-8370af487004)
+
+ ![dulux paint](https://github.com/user-attachments/assets/ec3619b2-3a17-469e-96f1-7341714de470) ![raw supply](https://github.com/user-attachments/assets/86f65e18-7486-4535-b86f-2c7b4edc7dd6)   ![seller dashboard](https://github.com/user-attachments/assets/d5b72139-227b-43b8-8f47-8888e6f14eec)![seller profile](https://github.com/user-attachments/assets/15e4a735-57d2-4b3b-9b1a-2c9341b0ba9d)
+
+
+## Web Admin (web app)
+
+![Admin login](https://github.com/user-attachments/assets/15373580-a9d9-44a3-812c-8f010d9a2305)
+![admin - user profile view](https://github.com/user-attachments/assets/6636218c-eff4-42e2-a1b4-ba42cd8c4cae)
+![admin dash](https://github.com/user-attachments/assets/3f39a4e4-69fc-4d07-bc5c-08c3e25d563c)
+
+
+
+
+
+## 📄 License
+
+This project is developed for educational purposes. Licensing to be added.
+
+---
+
+> Created with for the NSBM / University of Plymouth final-year project under the supervision of Prof. Chaminda Wijesinghe
