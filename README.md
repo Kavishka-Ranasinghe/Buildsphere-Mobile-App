@@ -1,6 +1,6 @@
 # 🏗️ BuildSphere Mobile Application - A Smart Communication and Material Sourcing App for the Construction Industry
 **Developer**
-- **Kavishka Ramasinghe** 
+- **Kavishka Ranasinghe** 
 - **Plymouth Name** - Pulihinga M Ranasinghe
 - **Student ID** - 10898626
 
