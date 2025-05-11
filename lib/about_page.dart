@@ -80,7 +80,7 @@ class AboutPage extends StatelessWidget {
                         // Supervisor Section
                         _buildTeamMember(
                           context: context,
-                          name: 'Supervisor: \n Prof. Chaminda Wijesinghe \n',
+                          name: 'Project Supervisor: \nProf. Chaminda Wijesinghe \n',
                           imagePath: 'assets/images/Dr.Chaminda-Wijesinghe.webp',
                           url: 'https://www.nsbm.ac.lk/staff/dr-chaminda-wijesinghe/',
                           text: null,
