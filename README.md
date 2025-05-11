@@ -6,7 +6,7 @@
 - **Student ID** - 10898626
 
 **Supervisor**
--**Prof. Chaminda Wijesinghe**
+-**Prof. Chaminda Wijesinghe -**
 https://www.nsbm.ac.lk/staff/dr-chaminda-wijesinghe/
 
 **BuildSphere** is a mobile-first application developed to streamline communication and procurement in the Sri Lankan construction industry. It connects clients, engineers, planners, and hardware shop owners on a single real-time platform, while providing administrators with account management capabilities through a dedicated web dashboard.
