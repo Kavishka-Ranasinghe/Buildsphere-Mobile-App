@@ -405,9 +405,8 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       String fileName = result.files.single.name.toLowerCase();
       String? caption;
 
-      if (fileName.endsWith(".mp4")) {
-        caption = await _showCaptionDialog();
-      }
+      // Show caption dialog for all file types (video, photo, or other files)
+      caption = await _showCaptionDialog();
 
       final snackBar = SnackBar(
         content: const Text("📤 Uploading media..."),
@@ -573,6 +572,9 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                       child: TextField(
                         controller: _messageController,
                         decoration: const InputDecoration(hintText: "Type a message..."),
+                        keyboardType: TextInputType.multiline,
+                        maxLines: null,
+                        minLines: 1,
                       ),
                     ),
                     IconButton(
@@ -736,16 +738,30 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                         style: TextStyle(color: Colors.red, fontStyle: FontStyle.italic),
                       )
                           : isImage && fileUrl != null
-                          ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: CachedNetworkImage(
-                          imageUrl: fileUrl,
-                          width: 280,
-                          height: 280,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const CircularProgressIndicator(),
-                          errorWidget: (context, url, error) => const Icon(Icons.broken_image),
-                        ),
+                          ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: fileUrl,
+                              width: 280,
+                              height: 280,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const CircularProgressIndicator(),
+                              errorWidget: (context, url, error) => const Icon(Icons.broken_image),
+                            ),
+                          ),
+                          if (caption != null && caption.isNotEmpty) ...[
+                            const SizedBox(height: 11),
+                            SelectableText(
+                              caption,
+                              style: TextStyle(
+                                color: isSentByMe ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ],
                       )
                           : isVideo
                           ? Column(
@@ -767,20 +783,34 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                           ],
                         ],
                       )
-                          : Row(
-                        mainAxisSize: MainAxisSize.min,
+                          : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.insert_drive_file,
-                            color: isSentByMe ? Colors.white : Colors.black,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.insert_drive_file,
+                                color: isSentByMe ? Colors.white : Colors.black,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                fileName,
+                                style: TextStyle(
+                                  color: isSentByMe ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            fileName,
-                            style: TextStyle(
-                              color: isSentByMe ? Colors.white : Colors.black,
+                          if (caption != null && caption.isNotEmpty) ...[
+                            const SizedBox(height: 11),
+                            SelectableText(
+                              caption,
+                              style: TextStyle(
+                                color: isSentByMe ? Colors.white : Colors.black,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -823,12 +853,12 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           content: const Text("Are you sure you want to delete this message?"),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.pop(context, null),
               child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.pop(context);
                 await deleteMessage(messageId);
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
