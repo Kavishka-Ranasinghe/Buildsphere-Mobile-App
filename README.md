@@ -63,6 +63,10 @@ https://www.nsbm.ac.lk/staff/dr-chaminda-wijesinghe/
   Improve governance and security through administrative control
 
 ---
+## Screen shots
+- *Mobile application*
+![login](https://github.com/user-attachments/assets/1bb1efca-42f4-43d0-a017-7954ec39158c)
+
 
 ## 📄 License
 
@@ -70,4 +74,4 @@ This project is developed for educational purposes. Licensing to be added.
 
 ---
 
-> Created with 💡 for the NSBM / University of Plymouth final-year project
+> Created with for the NSBM / University of Plymouth final-year project under the supervision of Prof. Chaminda Wijesinghe
