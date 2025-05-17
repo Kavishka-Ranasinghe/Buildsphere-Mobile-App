@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../login.dart'; // Import the Login Page
+import '../login.dart';
 import 'package:image/image.dart' as img;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
@@ -19,22 +19,43 @@ class ProfileScreen extends StatefulWidget {
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveClientMixin {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   String _userId = "";
-  String _userRole = ""; // Store user role
+  String _userRole = "";
   String? _localImagePath;
-  String? _downloadURL; // Ensure this is declared in the class
+  String? _downloadURL;
   String? _selectedDistrict;
   String? _selectedCity;
+  bool _isUserDeleted = false;
+  bool _isLoading = true; // Add loading state
+
+  @override
+  bool get wantKeepAlive => true; // Retain state on navigation
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _checkUserStatus();
+  }
+
+  // Check if user is authenticated and load data if available
+  Future<void> _checkUserStatus() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() {
+        _isUserDeleted = true;
+        _isLoading = false;
+      });
+    } else {
+      await _loadUserData();
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   // Function to delete user account
@@ -70,15 +91,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
       _userId = user.uid;
 
-      // Step 1: Re-authenticate
       final password = await _promptForPassword();
       final cred = EmailAuthProvider.credential(email: user.email!, password: password);
       await user.reauthenticateWithCredential(cred);
 
-      // Step 2: Delete Firestore document
       await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
 
-      // Step 3: Delete profile picture (if any)
       if (_downloadURL != null) {
         try {
           await FirebaseStorage.instance.ref('profile_images/$_userId/profile.jpg').delete();
@@ -89,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       Future<void> deleteCometChatUser(String uid) async {
         const String appId = "272345917d37d43c";
-        const String region = "in"; // From CometChat dashboard
+        const String region = "in";
         const String adminApiKey = "ce9288c50229728cde6a4a18c2d4075c0eb785ea";
 
         final Uri url = Uri.parse("https://$appId.api-$region.cometchat.io/v3/users/$uid");
@@ -112,10 +130,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       await deleteCometChatUser(_userId);
 
-      // Step 4: Delete from Firebase Auth
       await user.delete();
 
-      // Step 5: Show farewell popup
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -129,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close popup
+                Navigator.of(context).pop();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -180,7 +196,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return password;
   }
 
-  // Function to delete profile image
   Future<void> _deleteProfileImage() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -194,7 +209,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String userId = user.uid;
       String filePath = 'profile_images/$userId/profile.jpg';
 
-      // Remove image reference from Firestore & Storage together
       await Future.wait([
         FirebaseStorage.instance.ref(filePath).delete(),
         FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -217,12 +231,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Function to load user data from Firestore
   Future<void> _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       setState(() {
         _userId = user.uid;
+        _isLoading = true;
       });
 
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -231,28 +245,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
           .get();
 
       if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
         setState(() {
-          _nameController.text = userDoc['name'];
-          _emailController.text = userDoc['email'];
-          _userRole = userDoc['role'];
-          _selectedDistrict = userDoc['district'];
-          _selectedCity = userDoc['city'];
-          _downloadURL = userDoc['profileImage'];
-
-          // Save Image Locally
-          _cacheProfileImage(_downloadURL!);
+          _nameController.text = data['name'] ?? '';
+          _emailController.text = data['email'] ?? '';
+          _userRole = data['role'] ?? '';
+          _selectedDistrict = data['district'] ?? null;
+          _selectedCity = data['city'] ?? null;
+          _downloadURL = data['profileImage'];
+          if (_downloadURL != null) {
+            _cacheProfileImage(_downloadURL!);
+          }
+        });
+      } else {
+        setState(() {
+          _isUserDeleted = true;
         });
       }
     }
   }
 
-  // Save Image Locally
   Future<void> _cacheProfileImage(String imageUrl) async {
     final directory = await getApplicationDocumentsDirectory();
     final localPath = '${directory.path}/profile_$_userId.jpg';
 
     try {
-      final response = await http.get(Uri.parse(imageUrl)); // Use `http.get()`
+      final response = await http.get(Uri.parse(imageUrl));
       if (response.statusCode == 200) {
         File file = File(localPath);
         await file.writeAsBytes(response.bodyBytes);
@@ -265,24 +283,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Function to pick an image and update UI immediately
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       File newImage = File(pickedFile.path);
 
-      // Update UI immediately with selected image
       setState(() {
         _profileImage = newImage;
       });
 
-      // Upload image to Firebase Storage
       await _uploadProfileImage(newImage);
     }
   }
 
-  // Upload profile image to Firebase Storage
   Future<void> _uploadProfileImage(File imageFile) async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -294,21 +308,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       String userId = user.uid;
-      String fileName = "profile.jpg"; // Keeping it constant to replace old image
+      String fileName = "profile.jpg";
       String filePath = 'profile_images/$userId/$fileName';
 
-      // Resize Image Before Uploading (Reduce File Size)
       List<int> imageBytes = await imageFile.readAsBytes();
       img.Image? decodedImage = img.decodeImage(Uint8List.fromList(imageBytes));
 
       if (decodedImage != null) {
-        img.Image resizedImage = img.copyResize(decodedImage, width: 300); // Resizing to 300px
-        imageBytes = img.encodeJpg(resizedImage, quality: 80); // Compressing
+        img.Image resizedImage = img.copyResize(decodedImage, width: 300);
+        imageBytes = img.encodeJpg(resizedImage, quality: 80);
       }
 
-      // Use putData() instead of putFile()
       Reference ref = FirebaseStorage.instance.ref(filePath);
-      UploadTask uploadTask = ref.putData(Uint8List.fromList(imageBytes)); // Faster Upload
+      UploadTask uploadTask = ref.putData(Uint8List.fromList(imageBytes));
 
       TaskSnapshot snapshot = await uploadTask;
       if (snapshot.state == TaskState.success) {
@@ -341,9 +353,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Dialog(
           backgroundColor: Colors.black,
           child: GestureDetector(
-            onTap: () => Navigator.of(context).pop(), // Tap to close
+            onTap: () => Navigator.of(context).pop(),
             child: InteractiveViewer(
-              panEnabled: true, // Allow zooming
+              panEnabled: true,
               child: _profileImage != null
                   ? Image.file(_profileImage!)
                   : _downloadURL != null
@@ -356,7 +368,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Function to save updated user data
   Future<void> _saveChanges() async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(_userId).update({
@@ -376,9 +387,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Function to log out and redirect to login page
   void _logout(BuildContext context) async {
-    // CometChat Logout
     await comet_chat.CometChat.logout(
       onSuccess: (_) {
         debugPrint("✅ CometChat logout successful");
@@ -388,10 +397,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
 
-    // Firebase Logout
     await FirebaseAuth.instance.signOut();
 
-    // Navigate to Login Screen
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -435,23 +442,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         backgroundColor: Colors.green,
       ),
-      body: Stack(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _isUserDeleted
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Account is no longer available",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                      (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Go to Login Page',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      )
+          : Stack(
         children: [
-          // Background Image with Blur Effect
           Positioned.fill(
             child: Image.asset(
-              'assets/images/modern.png', // Add this image to assets folder
+              'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
           Positioned.fill(
             child: Container(
-              color: Colors.black.withOpacity(0.3), // Dark overlay
+              color: Colors.black.withOpacity(0.3),
             ),
           ),
           SingleChildScrollView(
@@ -462,9 +509,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8), // Slightly transparent white background
+                    color: Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.green, width: 5), // Added green border
+                    border: Border.all(color: Colors.green, width: 5),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
@@ -486,8 +533,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           children: [
                             GestureDetector(
-                              onTap: _pickImage, // Short tap to pick image
-                              onLongPress: () { // Long press to view image full-screen
+                              onTap: _pickImage,
+                              onLongPress: () {
                                 if (_profileImage != null || _downloadURL != null) {
                                   _showFullScreenImage(context);
                                 }
@@ -495,14 +542,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: CircleAvatar(
                                 radius: 50,
                                 backgroundImage: _profileImage != null
-                                    ? FileImage(_profileImage!) // Show selected image
+                                    ? FileImage(_profileImage!)
                                     : _downloadURL != null
                                     ? CachedNetworkImageProvider(_downloadURL!)
                                     : const AssetImage('assets/images/profile.gif') as ImageProvider,
                               ),
                             ),
                             const SizedBox(height: 5),
-                            if (_downloadURL != null || _profileImage != null) // Only show if an image exists
+                            if (_downloadURL != null || _profileImage != null)
                               TextButton(
                                 onPressed: _deleteProfileImage,
                                 style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -520,13 +567,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       const SizedBox(height: 20),
-                      // Display Role as Read-Only Text
                       Text(
                         'Selected Role: $_userRole',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 5),
-                      // Name Input
                       TextField(
                         controller: _nameController,
                         decoration: const InputDecoration(
@@ -535,18 +580,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      // Email Input
                       TextField(
                         controller: _emailController,
-                        readOnly: true, // Make it read-only
-                        enabled: false, // Prevent editing
+                        readOnly: true,
+                        enabled: false,
                         decoration: const InputDecoration(
                           labelText: 'Email',
                           border: OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 5),
-                      // District Dropdown
                       _buildDropdown(
                         hint: "Select District",
                         value: _selectedDistrict,
@@ -554,12 +597,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedDistrict = value;
-                            _selectedCity = null; // Reset city
+                            _selectedCity = null;
                           });
                         },
                       ),
                       const SizedBox(height: 5),
-                      // City Dropdown (only if district is selected)
                       if (_selectedDistrict != null)
                         _buildDropdown(
                           hint: "Select City",
@@ -572,7 +614,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       const SizedBox(height: 25),
-                      // Row to place Save Changes and Delete Account buttons on the same line
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -612,23 +653,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-}
 
-Widget _buildDropdown({
-  required String hint,
-  required String? value,
-  required List<String> items,
-  required void Function(String?) onChanged,
-}) {
-  return DropdownButtonFormField<String>(
-    value: value,
-    hint: Text(hint),
-    isExpanded: true,
-    items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
-    onChanged: onChanged,
-    decoration: const InputDecoration(
-      border: OutlineInputBorder(),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    ),
-  );
+  Widget _buildDropdown({
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required void Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      hint: Text(hint),
+      isExpanded: true,
+      items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+      onChanged: onChanged,
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+    );
+  }
 }
