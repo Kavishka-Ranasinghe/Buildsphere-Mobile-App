@@ -4,6 +4,11 @@ import { db } from '../firebase';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import axios from 'axios';
 
+const COMETCHAT_APP_ID = '272345917d37d43c';
+const COMETCHAT_API_KEY = '409c0d63bee3024db427268ecb10b83f8692d77b'; // Updated to REST API Key
+const COMETCHAT_REGION = 'in';
+const COMETCHAT_BASE_URL = `https://${COMETCHAT_APP_ID}.api-${COMETCHAT_REGION}.cometchat.io/v3/users`;
+
 // Define styles outside the component
 const containerStyle = {
   minHeight: '100vh',
@@ -131,31 +136,56 @@ function UserDetail() {
   }, [uid]);
 
   const handleDelete = async () => {
-    if (window.confirm('Delete this user?')) {
-      let authSuccess = false;
+  if (window.confirm('Delete this user?')) {
+    let authSuccess = false;
+    let cometChatSuccess = false;
 
-      try {
-        // Attempt to delete from Firebase Authentication
-        await axios.post('http://localhost:5000/deleteUser', { uid });
-        authSuccess = true;
-      } catch (authError) {
-        console.warn('Authentication deletion failed or user not found:', authError.message);
-        // Continue even if Authentication fails
-      }
+    // Check if user has a CometChat account based on role
+    const hasCometChatAccount = user && ['client', 'engineer', 'planner'].includes(user.role.toLowerCase());
 
-      try {
-        // Delete from Firestore using the same uid
-        await deleteDoc(doc(db, 'users', uid));
-        const message = authSuccess
-          ? '✅ User deleted from both Authentication and Firestore successfully!'
-          : '✅ User deleted from Firestore successfully! (Authentication already removed or failed)';
-        alert(message);
-        navigate('/dashboard');
-      } catch (firestoreError) {
-        alert('❌ Error deleting user from Firestore: ' + firestoreError.message);
+    try {
+      // Delete from CometChat if the user has a CometChat account
+      if (hasCometChatAccount) {
+        await axios.delete(`${COMETCHAT_BASE_URL}/${uid}`, {
+          headers: {
+            'Content-type': 'application/json',
+            'Accept': 'application/json',
+            'apiKey': COMETCHAT_API_KEY,
+            'appId': COMETCHAT_APP_ID,
+          },
+          data: { permanent: true },
+        });
+        cometChatSuccess = true;
       }
+    } catch (cometChatError) {
+      console.warn('CometChat deletion failed:', cometChatError.message);
+      // Continue even if CometChat fails
     }
-  };
+
+    try {
+      // Delete from Firebase Authentication
+      await axios.post('http://localhost:5000/deleteUser', { uid });
+      authSuccess = true;
+    } catch (authError) {
+      console.warn('Authentication deletion failed:', authError.message);
+      // Continue even if Authentication fails
+    }
+
+    try {
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'users', uid));
+      // Construct success message based on what succeeded
+      let message = '✅ User deleted from Firestore successfully!';
+      if (authSuccess) message += ' (Authentication also deleted)';
+      if (hasCometChatAccount && cometChatSuccess) message += ' (CometChat also deleted)';
+      else if (hasCometChatAccount && !cometChatSuccess) message += ' (CometChat deletion failed)';
+      alert(message);
+      navigate('/dashboard');
+    } catch (firestoreError) {
+      alert('❌ Error deleting user from Firestore: ' + firestoreError.message);
+    }
+  }
+};
 
   if (!user) {
     return (
@@ -179,6 +209,7 @@ function UserDetail() {
           style={imageStyle}
         />
         <p style={textStyle}><strong>Email:</strong> {user.email || 'No Email'}</p>
+        <p style={textStyle}><strong>Name:</strong> {user.name || 'No Name'}</p>
         <p style={textStyle}><strong>Role:</strong> {user.role || 'N/A'}</p>
         <p style={textStyle}><strong>District:</strong> {user.district || 'N/A'}</p>
         <p style={textStyle}><strong>City:</strong> {user.city || 'N/A'}</p>
