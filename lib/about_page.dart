@@ -34,7 +34,7 @@ class AboutPage extends StatelessWidget {
         ),
         elevation: 4,
       ),
-      
+
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
