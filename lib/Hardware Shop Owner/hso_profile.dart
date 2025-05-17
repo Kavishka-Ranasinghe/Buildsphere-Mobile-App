@@ -32,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _userId = "";
   String? _downloadURL;
   String? _localImagePath;
+  bool _isUserDeleted = false;
 
   @override
   void initState() {
@@ -41,7 +42,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _fetchUserProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      setState(() {
+        _isUserDeleted = true;
+      });
+      return;
+    }
     _userId = user.uid;
 
     DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(_userId).get();
@@ -63,6 +69,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (_downloadURL != null) {
         await _cacheProfileImage(_downloadURL!);
       }
+    } else {
+      setState(() {
+        _isUserDeleted = true;
+      });
     }
   }
 
@@ -93,7 +103,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final updatedDistrict = _selectedDistrict;
         final updatedCity = _selectedCity;
 
-        // Update user's profile
         await FirebaseFirestore.instance.collection('users').doc(_userId).update({
           'shopName': updatedShopName,
           'email': _emailController.text.trim(),
@@ -104,7 +113,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'city': updatedCity,
         });
 
-        // ✅ Update all products posted by this user with the new phone number
         final productsRef = FirebaseFirestore.instance.collection('products');
         final querySnapshot = await productsRef.where('ownerId', isEqualTo: _userId).get();
 
@@ -122,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Profile  updated successfully")),
+            const SnackBar(content: Text("Profile updated successfully")),
           );
         }
       } catch (e) {
@@ -135,7 +143,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
 
@@ -147,6 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _uploadProfileImage(newImage);
     }
   }
+
   Future<void> _uploadProfileImage(File imageFile) async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -195,6 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
   Future<void> _deleteProfileImage() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
@@ -223,6 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
   void _logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     Navigator.pushAndRemoveUntil(
@@ -231,6 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           (route) => false,
     );
   }
+
   void _showFullScreenImage(BuildContext context) {
     showDialog(
       context: context,
@@ -285,14 +296,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (user == null) return;
       _userId = user.uid;
 
-      // 1. Re-authentication (Password Prompt)
       final cred = EmailAuthProvider.credential(
         email: user.email!,
         password: await _promptForPassword(),
       );
       await user.reauthenticateWithCredential(cred);
 
-      // 2. Delete all user's products
       final productDocs = await FirebaseFirestore.instance
           .collection('products')
           .where('ownerId', isEqualTo: _userId)
@@ -301,10 +310,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await doc.reference.delete();
       }
 
-      // 3. Delete user document from Firestore
       await FirebaseFirestore.instance.collection('users').doc(_userId).delete();
 
-      // 4. Delete profile image from Storage
       if (_downloadURL != null) {
         try {
           await FirebaseStorage.instance
@@ -315,17 +322,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
-      // 5. Delete from Firebase Auth
       await user.delete();
 
-      // 6. Redirect to login
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
             (route) => false,
       );
 
-      // 6. Show success popup and redirect
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -341,7 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               TextButton(
                 child: const Text("OK"),
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop();
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -353,13 +357,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         },
       );
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error deleting account: $e")),
       );
     }
   }
+
   Future<String> _promptForPassword() async {
     String password = '';
     await showDialog(
@@ -392,7 +396,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return password;
   }
 
-
   String? _validateMapLink(String? value) {
     if (value != null && value.isNotEmpty) {
       final regex = RegExp(r'^https?:\/\/(www\.)?maps\.app\.goo\.gl\/');
@@ -411,16 +414,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Hardware Shop Owner Profile'),
         backgroundColor: Colors.green,
       ),
-      body: Stack(
+      body: _isUserDeleted
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Account is no longer available",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                      (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Go to Login Page',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      )
+          : Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/modern.png', // ✅ Replace with your background image
+              'assets/images/modern.png',
               fit: BoxFit.cover,
             ),
           ),
-          // Overlay for readability
           Container(
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.3),
@@ -431,9 +470,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.75), // ✅ Slight transparency for form
-                  borderRadius: BorderRadius.circular(15), // ✅ Rounded borders
-                  border: Border.all(color: Colors.green, width: 2), // ✅ Added border
+                  color: Colors.white.withOpacity(0.75),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.green, width: 2),
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Form(
@@ -448,8 +487,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 20),
                       Center(
                         child: GestureDetector(
-                          onTap: _pickImage, // ✅ Short tap to pick image
-                          onLongPress: () {  // ✅ Long press to view image full-screen
+                          onTap: _pickImage,
+                          onLongPress: () {
                             if (_profileImage != null || _downloadURL != null) {
                               _showFullScreenImage(context);
                             }
@@ -457,7 +496,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: CircleAvatar(
                             radius: 50,
                             backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!) // ✅ Show selected image
+                                ? FileImage(_profileImage!)
                                 : _downloadURL != null
                                 ? CachedNetworkImageProvider(_downloadURL!)
                                 : const AssetImage('assets/images/profile.gif') as ImageProvider,
@@ -465,15 +504,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      if (_downloadURL != null || _profileImage != null) // ✅ Only show if an image exists
+                      if (_downloadURL != null || _profileImage != null)
                         Center(
-                            child: TextButton(
-                              onPressed: _deleteProfileImage,
-                              style: TextButton.styleFrom(foregroundColor: Colors.red),
-                              child: const Text("Remove Profile Picture"),
+                          child: TextButton(
+                            onPressed: _deleteProfileImage,
+                            style: TextButton.styleFrom(foregroundColor: Colors.red),
+                            child: const Text("Remove Profile Picture"),
                           ),
                         ),
-
                       const SizedBox(height: 10),
                       if (_downloadURL == null && _localImagePath == null)
                         const Center(
@@ -483,7 +521,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       const SizedBox(height: 20),
-
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
@@ -494,8 +531,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 10),
                       TextFormField(
                         controller: _emailController,
-                        readOnly: true, // ✅ Make it read-only
-                        enabled: false, // ❌ Prevent editing
+                        readOnly: true,
+                        enabled: false,
                         keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
                           labelText: 'Shop Email',
@@ -522,7 +559,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         validator: _validateMapLink,
                       ),
                       const SizedBox(height: 10),
-                      // ✅ District Dropdown
                       _buildDropdown(
                         hint: "Select District",
                         value: _selectedDistrict,
@@ -530,13 +566,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedDistrict = value;
-                            _selectedCity = null; // Reset city
+                            _selectedCity = null;
                           });
                         },
                       ),
                       const SizedBox(height: 10),
-
-                      // ✅ City Dropdown (only if district is selected)
                       if (_selectedDistrict != null)
                         _buildDropdown(
                           hint: "Select City",
@@ -549,7 +583,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           },
                         ),
                       const SizedBox(height: 20),
-                      // ✅ Buttons
                       ElevatedButton(
                         onPressed: _updateProfile,
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -631,4 +664,3 @@ Widget _buildDropdown({
     ),
   );
 }
-
