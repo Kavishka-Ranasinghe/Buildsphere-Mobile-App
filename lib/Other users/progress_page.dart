@@ -3,6 +3,7 @@ import 'package:cometchat_sdk/cometchat_sdk.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class ProgressPage extends StatefulWidget {
   final String roomId;
@@ -68,6 +69,11 @@ class _ProgressPageState extends State<ProgressPage> {
 
   Future<void> _saveProjectData() async {
     try {
+      final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        throw Exception("User not authenticated");
+      }
+
       await FirebaseFirestore.instance
           .collection('project_progress')
           .doc(widget.roomId)
@@ -76,6 +82,7 @@ class _ProgressPageState extends State<ProgressPage> {
         'description': _descriptionController.text.trim(),
         'mapLink': _mapLinkController.text.trim(),
         'createdAt': Timestamp.now(),
+        'createdBy': firebaseUser.uid, // Add the Firebase UID of the user
       }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
