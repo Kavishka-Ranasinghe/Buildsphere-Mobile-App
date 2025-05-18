@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:cometchat_calls_uikit/cometchat_calls_uikit.dart';
+import 'progress_page.dart'; // Import the new progress page
 
 class VideoPlayerView extends StatefulWidget {
   final String url;
@@ -365,7 +366,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       setState(() {
         final index = messages.indexWhere((msg) => msg.id == message.id);
         if (index != -1) {
-          messages[index] = message; // Update with deleted status
+          messages[index] = message;
         }
       });
     }
@@ -405,7 +406,6 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
       String fileName = result.files.single.name.toLowerCase();
       String? caption;
 
-      // Show caption dialog for all file types (video, photo, or other files)
       caption = await _showCaptionDialog();
 
       final snackBar = SnackBar(
@@ -519,7 +519,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
                 voiceCallButtonBorder: BorderSide(color: Colors.grey, width: 1),
                 videoCallButtonBorder: BorderSide(color: Colors.grey, width: 1),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -527,6 +527,24 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
         children: [
           Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProgressPage(roomId: widget.roomId),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Project Progress'),
+                ),
+              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 60),
@@ -878,7 +896,7 @@ class _ChatScreenState extends State<ChatScreen> with MessageListener {
           setState(() {
             final index = messages.indexWhere((msg) => msg.id == messageId);
             if (index != -1) {
-              messages[index] = message; // Update with deleted status
+              messages[index] = message;
             }
           });
           ScaffoldMessenger.of(context).showSnackBar(
