@@ -166,7 +166,7 @@ function Dashboard() {
       {/* Content layer */}
       <div style={contentStyle}>
         <h1 style={titleStyle}>
-          <span role="img" aria-label="wave">👋</span> Admin Dashboard
+         Buildsphere Admin Dashboard
         </h1>
 
         {/* TOP NAVIGATION */}

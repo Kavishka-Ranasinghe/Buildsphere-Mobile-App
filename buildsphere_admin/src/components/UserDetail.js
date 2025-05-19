@@ -128,7 +128,7 @@ function UserDetail() {
             const mappedUser = {
               id: userDoc.id,
               ...userData,
-              name: userData.shopName+' Hardware' || 'No Shop Name', // Map shopName to name
+              name: userData.shopName + ' Hardware' || 'No Shop Name', // Map shopName to name
             };
             console.log('Mapped Hardware Shop Owner:', mappedUser); // Debug mapped data
             setUser(mappedUser);
@@ -147,7 +147,15 @@ function UserDetail() {
         console.error('Error fetching user:', err);
       }
     };
+
+    // Initial fetch
     fetchUser();
+
+    // Set interval to refresh every 2 seconds
+    const intervalId = setInterval(fetchUser, 2000);
+
+    // Cleanup interval on unmount or when uid changes
+    return () => clearInterval(intervalId);
   }, [uid]);
 
   const handleDelete = async () => {
