@@ -21,7 +21,7 @@ function Dashboard() {
             const mappedUser = {
               id: doc.id,
               ...userData,
-              name: userData.shopName+' Hardware' || 'No Shop Name', // Map shopName to name
+              name: userData.shopName+' shop' || 'No Shop Name', // Map shopName to name
             };
             console.log('Mapped Hardware Shop Owner:', mappedUser); // Debug mapped data
             return mappedUser;
