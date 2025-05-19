@@ -377,8 +377,22 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
         'city': _selectedCity,
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully")),
+      // Update the name in CometChat
+      comet_chat.User updatedUser = comet_chat.User(uid: _userId, name: _nameController.text.trim());
+      await comet_chat.CometChat.updateCurrentUserDetails(
+        updatedUser,
+        onSuccess: (comet_chat.User updatedCometUser) {
+          debugPrint("✅ Updated User: ${updatedCometUser.name}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile and CometChat name updated successfully")),
+          );
+        },
+        onError: (comet_chat.CometChatException e) {
+          debugPrint("❌ Updated User exception: ${e.message}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to update CometChat name: ${e.message}")),
+          );
+        },
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
