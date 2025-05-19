@@ -121,10 +121,25 @@ function UserDetail() {
       try {
         const userDoc = await getDoc(doc(db, 'users', uid));
         if (userDoc.exists()) {
-          setUser({
-            id: userDoc.id,
-            ...userDoc.data()
-          });
+          const userData = userDoc.data();
+          console.log('Raw user data:', { id: userDoc.id, ...userData }); // Debug raw data
+          // Check if the user is a Hardware Shop Owner (case-insensitive)
+          if (userData.role?.toLowerCase() === 'hardware shop owner') {
+            const mappedUser = {
+              id: userDoc.id,
+              ...userData,
+              name: userData.shopName+' Hardware' || 'No Shop Name', // Map shopName to name
+            };
+            console.log('Mapped Hardware Shop Owner:', mappedUser); // Debug mapped data
+            setUser(mappedUser);
+          } else {
+            const mappedUser = {
+              id: userDoc.id,
+              ...userData,
+            };
+            console.log('Mapped other role:', mappedUser); // Debug mapped data
+            setUser(mappedUser);
+          }
         } else {
           console.error('User not found');
         }
