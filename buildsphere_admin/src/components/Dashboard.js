@@ -13,10 +13,27 @@ function Dashboard() {
       try {
         const usersCollection = collection(db, 'users');
         const usersSnapshot = await getDocs(usersCollection);
-        const usersList = usersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const usersList = usersSnapshot.docs.map(doc => {
+          const userData = doc.data();
+          console.log('Raw user data:', { id: doc.id, ...userData }); // Debug raw data
+          // Check if the user is a Hardware Shop Owner (case-insensitive)
+          if (userData.role?.toLowerCase() === 'hardware shop owner') {
+            const mappedUser = {
+              id: doc.id,
+              ...userData,
+              name: userData.shopName+' Hardware' || 'No Shop Name', // Map shopName to name
+            };
+            console.log('Mapped Hardware Shop Owner:', mappedUser); // Debug mapped data
+            return mappedUser;
+          }
+          // For other roles, use the data as-is
+          const mappedUser = {
+            id: doc.id,
+            ...userData,
+          };
+          console.log('Mapped other role:', mappedUser); // Debug mapped data
+          return mappedUser;
+        });
         setUsers(usersList);
       } catch (err) {
         console.error('Error fetching users:', err);

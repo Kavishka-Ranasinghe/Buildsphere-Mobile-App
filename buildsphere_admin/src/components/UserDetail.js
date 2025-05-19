@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import axios from 'axios';
 
 const COMETCHAT_APP_ID = '272345917d37d43c';
@@ -136,56 +136,76 @@ function UserDetail() {
   }, [uid]);
 
   const handleDelete = async () => {
-  if (window.confirm('Delete this user?')) {
-    let authSuccess = false;
-    let cometChatSuccess = false;
+    if (window.confirm('Delete this user?')) {
+      let authSuccess = false;
+      let cometChatSuccess = false;
+      let productsSuccess = false;
 
-    // Check if user has a CometChat account based on role
-    const hasCometChatAccount = user && ['client', 'engineer', 'planner'].includes(user.role.toLowerCase());
+      // Check if user has a CometChat account based on role
+      const hasCometChatAccount = user && ['client', 'engineer', 'planner'].includes(user.role.toLowerCase());
+      const isHardwareShopOwner = user && user.role.toLowerCase() === 'hardware shop owner';
 
-    try {
-      // Delete from CometChat if the user has a CometChat account
-      if (hasCometChatAccount) {
-        await axios.delete(`${COMETCHAT_BASE_URL}/${uid}`, {
-          headers: {
-            'Content-type': 'application/json',
-            'Accept': 'application/json',
-            'apiKey': COMETCHAT_API_KEY,
-            'appId': COMETCHAT_APP_ID,
-          },
-          data: { permanent: true },
-        });
-        cometChatSuccess = true;
+      try {
+        // Delete from CometChat if the user has a CometChat account
+        if (hasCometChatAccount) {
+          await axios.delete(`${COMETCHAT_BASE_URL}/${uid}`, {
+            headers: {
+              'content-type': 'application/json',
+              'accept': 'application/json',
+              'apikey': COMETCHAT_API_KEY,
+            },
+            data: { permanent: true },
+          });
+          cometChatSuccess = true;
+        }
+      } catch (cometChatError) {
+        console.warn('CometChat deletion failed:', cometChatError.message);
+        // Continue even if CometChat fails
       }
-    } catch (cometChatError) {
-      console.warn('CometChat deletion failed:', cometChatError.message);
-      // Continue even if CometChat fails
-    }
 
-    try {
-      // Delete from Firebase Authentication
-      await axios.post('http://localhost:5000/deleteUser', { uid });
-      authSuccess = true;
-    } catch (authError) {
-      console.warn('Authentication deletion failed:', authError.message);
-      // Continue even if Authentication fails
-    }
+      try {
+        // Delete from Firebase Authentication
+        await axios.post('http://localhost:5000/deleteUser', { uid });
+        authSuccess = true;
+      } catch (authError) {
+        console.warn('Authentication deletion failed:', authError.message);
+        // Continue even if Authentication fails
+      }
 
-    try {
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'users', uid));
-      // Construct success message based on what succeeded
-      let message = '✅ User deleted from Firestore successfully!';
-      if (authSuccess) message += ' (Authentication also deleted)';
-      if (hasCometChatAccount && cometChatSuccess) message += ' (CometChat also deleted)';
-      else if (hasCometChatAccount && !cometChatSuccess) message += ' (CometChat deletion failed)';
-      alert(message);
-      navigate('/dashboard');
-    } catch (firestoreError) {
-      alert('❌ Error deleting user from Firestore: ' + firestoreError.message);
+      try {
+        // Delete associated products if the user is a Hardware shop owner
+        if (isHardwareShopOwner) {
+          const productsQuery = query(
+            collection(db, 'products'),
+            where('ownerId', '==', uid)
+          );
+          const productDocs = await getDocs(productsQuery);
+          const deletePromises = productDocs.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deletePromises);
+          productsSuccess = true;
+        }
+      } catch (productsError) {
+        console.warn('Products deletion failed:', productsError.message);
+        // Continue even if products deletion fails
+      }
+
+      try {
+        // Delete from Firestore (users collection)
+        await deleteDoc(doc(db, 'users', uid));
+        // Construct success message based on what succeeded
+        let message = '✅ User deleted from Firestore successfully!';
+        if (authSuccess) message += ' (Authentication also deleted)';
+        if (hasCometChatAccount && cometChatSuccess) message += ' (CometChat also deleted)';
+        else if (hasCometChatAccount && !cometChatSuccess) message += ' (CometChat deletion failed)';
+        if (isHardwareShopOwner && productsSuccess) message += ' (Products also deleted)';
+        else if (isHardwareShopOwner && !productsSuccess) message += ' (Products deletion failed)';
+        alert(message);
+        navigate('/dashboard');
+      } catch (firestoreError) {
+        alert('❌ Error deleting user from Firestore: ' + firestoreError.message);
+      }
     }
-  }
-};
+  };
 
   if (!user) {
     return (
@@ -199,49 +219,23 @@ function UserDetail() {
     <div style={containerStyle}>
       {/* Overlay for the blurred background */}
       <div style={blurOverlayStyle} />
-
       {/* Content layer */}
       <div style={contentStyle}>
         <h1 style={titleStyle}>{user.name || 'No Name'}</h1>
-        <img
-          src={user.profileImage || placeholder}
-          alt="profile"
-          style={imageStyle}
-        />
+        <img src={user.profileImage || placeholder} alt="profile" style={imageStyle} />
         <p style={textStyle}><strong>Email:</strong> {user.email || 'No Email'}</p>
         <p style={textStyle}><strong>Name:</strong> {user.name || 'No Name'}</p>
         <p style={textStyle}><strong>Role:</strong> {user.role || 'N/A'}</p>
         <p style={textStyle}><strong>District:</strong> {user.district || 'N/A'}</p>
         <p style={textStyle}><strong>City:</strong> {user.city || 'N/A'}</p>
         <p style={textStyle}><strong>UID:</strong> {user.id}</p>
-        <button
-          style={buttonStyle}
-          onClick={handleDelete}
-        >
-          Delete User
-        </button>
+        <button style={buttonStyle} onClick={handleDelete}>Delete User</button>
       </div>
-
       {/* CSS Animation */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-
-          button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 77, 77, 0.5);
-          }
-        `}
-      </style>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 77, 77, 0.5); }
+      `}</style>
     </div>
   );
 }
