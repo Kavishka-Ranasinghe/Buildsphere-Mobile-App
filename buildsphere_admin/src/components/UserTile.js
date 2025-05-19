@@ -12,6 +12,9 @@ function UserTile({ user }) {
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
     transition: 'transform 0.3s ease, box-shadow 0.3s ease',
     textAlign: 'center',
+    maxWidth: '250px', // Added max width to limit tile size
+    width: '100%', // Ensure it takes full available width up to maxWidth
+    overflow: 'hidden', // Prevent content overflow
     '&:hover': {
       transform: 'translateY(-5px)',
       boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)',
@@ -28,10 +31,15 @@ function UserTile({ user }) {
   };
 
   const textStyle = {
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: 'sans-serif',
     fontSize: '1rem',
     color: '#333333',
     margin: '5px 0',
+    overflow: 'hidden', // Handle text overflow
+    textOverflow: 'ellipsis', // Add ellipsis for truncated text
+    whiteSpace: 'nowrap', // Keep text on a single line
+    // Alternatively, use wordBreak for multi-line wrapping:
+    // wordBreak: 'break-word',
   };
 
   const linkStyle = {
